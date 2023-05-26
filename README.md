@@ -6,5 +6,5 @@ See also my [nixos configuration](https://github.com/rasmus-kirk/nix-home-manage
 
 ## Todo: 
 
-- [] Add option documentation
-- [] Add documentation
+- [ ] Add option documentation
+- [ ] Add documentation
