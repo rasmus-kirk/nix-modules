@@ -5,7 +5,9 @@ with lib;
 let
 	cfg = config.kirk.joshuto;
 in {
-	meta.maintainers = [ ];
+	imports = [
+		../../extra/home-manager/joshuto.nix
+	];
 
 	options.kirk.joshuto = {
 		enable = mkEnableOption "joshuto file manager";
