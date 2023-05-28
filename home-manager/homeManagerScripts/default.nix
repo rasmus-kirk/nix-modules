@@ -1,4 +1,5 @@
 {
+  options,
   config,
   pkgs,
   lib,
@@ -6,6 +7,7 @@
 }:
 with lib; let
   cfg = config.kirk.homeManagerScripts;
+  configDir = "${config.xdg.configHome}/home-manager";
 
   hm-clean = pkgs.writeShellApplication {
     name = "hm-clean";
@@ -23,7 +25,7 @@ with lib; let
   hm-update = pkgs.writeShellApplication {
     name = "hm-update";
     text = ''
-      nix flake update ${cfg.configDir}
+      nix flake update ${configDir}
     '';
   };
 
@@ -40,19 +42,20 @@ with lib; let
   hm-rebuild = pkgs.writeShellApplication {
     name = "hm-rebuild";
     text = ''
-      home-manager switch -b backup --flake ${cfg.configDir}#${cfg.machine}
+      home-manager switch -b backup --flake ${configDir}#${cfg.machine}
     '';
   };
 in {
   options.kirk.homeManagerScripts = {
     enable = mkEnableOption "home manager scripts";
 
-    configDir = mkOption {
-      type = types.path;
-      # todo I need to confirm but I believe it's generally a bad idea to refer to anything inside `config` from option definitions
-      #      default = "${config.xdg.configHome}/home-manager";
-      description = "Path to the home-manager configuration.";
-    };
+#    configDir = mkOption {
+#      type = types.path;
+#      # modules are evaluated as follows: imports, options, config
+#      # you don't want to refer to config. from options as they haven't been evaluated yet.
+#      #      default = "${config.xdg.configHome}/home-manager";
+#      description = "Path to the home-manager configuration.";
+#    };
 
     machine = mkOption {
       type = types.nullOr types.str;

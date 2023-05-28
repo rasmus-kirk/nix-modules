@@ -1,8 +1,9 @@
 {
   lib,
+  pkgs,
   runCommand,
   nixosOptionsDoc,
-  pkgs,
+  inputs,
   ...
 }: let
   # Make sure the used package is scrubbed to avoid actually
@@ -16,6 +17,7 @@
         # disabled checking that all option definitions have matching declarations
         config._module.check = false;
       }
+      inputs.home-manager.nixosModules.default
       ./home-manager/fonts
       ./home-manager/foot
       ./home-manager/fzf
