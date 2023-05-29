@@ -9,13 +9,23 @@ with lib; let
 in {
   options.kirk.git = {
     enable = mkEnableOption "git";
+
+    userEmail = mkOption {
+      type = types.str;
+      description = "What email address to use for git.";
+    };
+
+    userName = mkOption {
+      type = types.str;
+      description = "Username to use for git.";
+    };
   };
 
   config = mkIf cfg.enable {
     programs.git = {
       enable = true;
-      userEmail = "mail@rasmuskirk.com";
-      userName = "rasmus-kirk";
+      userEmail = cfg.userEmail;
+      userName = cfg.userName;
       delta = {
         enable = true;
         options = {

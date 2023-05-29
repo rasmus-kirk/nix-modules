@@ -63,13 +63,6 @@ in {
   };
 
   config = mkIf cfg.enable {
-    assertions = [
-      {
-        assertion = cfg.machine != null;
-        message = "Machine value must be set!";
-      }
-    ];
-
     home.packages = [
       hm-update
       hm-upgrade
