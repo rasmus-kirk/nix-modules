@@ -29,6 +29,7 @@ in {
       delta = {
         enable = true;
         options = {
+          # TODO: Locked to gruvmax-fang, but hard to change
           features = "gruvmax-fang";
         };
       };
