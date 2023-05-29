@@ -1,12 +1,14 @@
-{ config, lib, pkgs, ... }:
-
-with lib;
-
-let
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
+with lib; let
   cfg = config.programs.joshuto;
-  tomlFormat = pkgs.formats.toml { };
+  tomlFormat = pkgs.formats.toml {};
 in {
-  meta.maintainers = [ maintainers.rasmus-kirk ];
+  meta.maintainers = [maintainers.rasmus-kirk];
 
   options.programs.joshuto = {
     enable = mkEnableOption "joshuto file manager";
@@ -20,7 +22,7 @@ in {
 
     settings = mkOption {
       type = tomlFormat.type;
-      default = { };
+      default = {};
       description = ''
         Configuration written to
         <filename>$XDG_CONFIG_HOME/joshuto/joshuto.toml</filename>.
@@ -32,7 +34,7 @@ in {
 
     keymap = mkOption {
       type = tomlFormat.type;
-      default = { };
+      default = {};
       description = ''
         Configuration written to
         <filename>$XDG_CONFIG_HOME/joshuto/keymap.toml</filename>.
@@ -44,7 +46,7 @@ in {
 
     mimetype = mkOption {
       type = tomlFormat.type;
-      default = { };
+      default = {};
       description = ''
         Configuration written to
         <filename>$XDG_CONFIG_HOME/joshuto/mimetype.toml</filename>.
@@ -56,7 +58,7 @@ in {
 
     theme = mkOption {
       type = tomlFormat.type;
-      default = { };
+      default = {};
       description = ''
         Configuration written to
         <filename>$XDG_CONFIG_HOME/joshuto/theme.toml</filename>.
@@ -68,19 +70,19 @@ in {
   };
 
   config = mkIf cfg.enable {
-    home.packages = [ cfg.package ];
+    home.packages = [cfg.package];
 
     xdg.configFile = {
-      "joshuto/joshuto.toml" = mkIf (cfg.settings != { }) {
+      "joshuto/joshuto.toml" = mkIf (cfg.settings != {}) {
         source = tomlFormat.generate "joshuto-settings" cfg.settings;
       };
-      "joshuto/keymap.toml" = mkIf (cfg.keymap != { }) {
+      "joshuto/keymap.toml" = mkIf (cfg.keymap != {}) {
         source = tomlFormat.generate "joshuto-keymap" cfg.keymap;
       };
-      "joshuto/mimetype.toml" = mkIf (cfg.mimetype != { }) {
+      "joshuto/mimetype.toml" = mkIf (cfg.mimetype != {}) {
         source = tomlFormat.generate "joshuto-mimetype" cfg.mimetype;
       };
-      "joshuto/theme.toml" = mkIf (cfg.theme != { }) {
+      "joshuto/theme.toml" = mkIf (cfg.theme != {}) {
         source = tomlFormat.generate "joshuto-theme" cfg.theme;
       };
     };
