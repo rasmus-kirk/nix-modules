@@ -59,6 +59,9 @@ in {
       enable = true;
 
       settings = {
+        preview = {
+          preview_shown_hook_script = "~/.config/joshuto/on_preview_shown";
+        };
         display = {
           automatically_count_lines = true;
           show_icons = true;
