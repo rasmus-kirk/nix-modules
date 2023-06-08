@@ -47,17 +47,19 @@ in {
         }
       ];
       aliases = {
-        update = "submodule update --init --recursive";
+        tree = "log --graph --decorate --pretty=oneline --abbrev-commit";
         unstage = "restore --staged";
-        d = "diff";
-        dc = "diff --cached";
-        c = "commit";
+        update = "submodule update --init --recursive";
+
         a = "add .";
         ca = "commit -a";
+        c = "commit";
+        co = "checkout --recurse-submodules";
+        dc = "diff --cached";
+        d = "diff";
+        l = "log";
         s = "status";
         su = "status -uno";
-        co = "checkout --recurse-submodules";
-        l = "log";
       };
       extraConfig = {
         push = {
