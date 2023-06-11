@@ -26,7 +26,7 @@ with lib; let
     # Latex
     texlab
     # Haskell
-    haskell-language-server
+    #haskell-language-server
     # Go
     gopls
     # Debugger: Rust/CPP/C/Zig
