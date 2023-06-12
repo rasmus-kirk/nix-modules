@@ -1,10 +1,14 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }:
 with lib; let
   cfg = config.kirk.joshuto;
+  joshuto-preview-color-support = pkgs.joshuto.overrideAttrs (o: { buildFeatures = [ "syntax_highlight" ]; });
+  joshuto-preview-color-support2 = pkgs.joshuto.overrideAttrs (o: {cargoBuildFlags = [ "--features=syntax_highlight" ];});
+ #= [ "--features=notmuch" ]; }
 in {
   options.kirk.joshuto = {
     enable = mkEnableOption "joshuto file manager";
@@ -51,8 +55,26 @@ in {
       '';
     };
 
+    home.packages = with pkgs; [
+      poppler_utils
+      libsixel
+      w3m-nox
+      jq
+      mediainfo
+      catdoc
+      mu
+      bat
+      odt2txt
+      atool
+      unar
+      p7zip
+      transmission-qt
+    ];
+
     programs.joshuto = {
       enable = true;
+
+      package = joshuto-preview-color-support2;
 
       settings = {
         preview = {
