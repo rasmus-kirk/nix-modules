@@ -56,7 +56,7 @@ in {
 
       settings = {
         preview = {
-          preview_shown_hook_script = "~/.config/joshuto/preview_file.sh";
+          preview_shown_hook_script = "~/.config/joshuto/preview_script.sh";
         };
         display = {
           automatically_count_lines = true;
