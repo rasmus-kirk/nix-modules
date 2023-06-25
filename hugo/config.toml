@@ -1,0 +1,3 @@
+theme = 'risotto'
+languageCode = 'en-us'
+title = "Option Documentation for Rasmus Kirk's Nix Modules"
