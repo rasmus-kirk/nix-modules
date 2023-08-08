@@ -76,6 +76,11 @@ in {
           "clipboard-paste" = "Mod1+V Control+Shift+V";
           "font-increase" = "Mod1+plus Mod1+equal Control+KP_Add";
           "font-decrease" = "Mod1+minus Control+KP_Subtract";
+          "search-start" = "Mod1+s";
+        };
+        search-bindings = mkIf cfg.enableKeyBindings {
+          "find-next" = "Mod1+l";
+          "find-prev" = "Mod1+h";
         };
       };
     };
