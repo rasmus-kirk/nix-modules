@@ -77,6 +77,7 @@ in {
           "font-increase" = "Mod1+plus Mod1+equal Control+KP_Add";
           "font-decrease" = "Mod1+minus Control+KP_Subtract";
           "search-start" = "Mod1+s";
+          "select-word" = "Mod1+d";
         };
         search-bindings = mkIf cfg.enableKeyBindings {
           "find-next" = "Mod1+l";
