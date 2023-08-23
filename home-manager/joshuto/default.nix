@@ -252,7 +252,7 @@ in {
 
           {
             keys = ["d" "D"];
-            command = "delete_files --foreground=true";
+            command = "delete_files";
           }
 
           {
