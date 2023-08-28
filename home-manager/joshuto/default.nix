@@ -78,7 +78,7 @@ in {
 
       settings = {
         preview = {
-          preview_script = "~/.config/joshuto/preview_script.sh";
+          preview_script = ./preview_script.sh; # "~/.config/joshuto/preview_script.sh";
         };
         display = {
           automatically_count_lines = true;
