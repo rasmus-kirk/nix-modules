@@ -6,9 +6,7 @@
 }:
 with lib; let
   cfg = config.kirk.joshuto;
-  joshuto-preview-color-support = pkgs.joshuto.overrideAttrs (o: { buildFeatures = [ "syntax_highlight" ]; });
-  joshuto-preview-color-support2 = pkgs.joshuto.overrideAttrs (o: {cargoBuildFlags = [ "--features=syntax_highlight" ];});
- #= [ "--features=notmuch" ]; }
+  #joshuto-with-flags = pkgs.joshuto.overrideAttrs (o: {cargoBuildFlags = [ "--features=syntax_highlight" ];});
 in {
   options.kirk.joshuto = {
     enable = mkEnableOption "joshuto file manager";
@@ -56,29 +54,29 @@ in {
     };
 
     home.packages = with pkgs; [
-      poppler_utils
-      libsixel
-      w3m-nox
-      jq
-      mediainfo
-      catdoc
-      mu
-      bat
-      odt2txt
       atool
-      unar
+      bat
+      catdoc
+      feh
+      jq
+      libsixel
+      mediainfo
+      mu
+      odt2txt
       p7zip
+      poppler_utils
       transmission-qt
+      unar
+      w3m-nox
     ];
 
     programs.joshuto = {
       enable = true;
 
-      package = joshuto-preview-color-support2;
-
       settings = {
         preview = {
-          preview_script = ./preview_script.sh; # "~/.config/joshuto/preview_script.sh";
+          max_preview_size = 100000000000; # ~100 GiB
+          preview_script = ./preview_script.sh;
         };
         display = {
           automatically_count_lines = true;
@@ -535,6 +533,11 @@ in {
             {
               command = "mediainfo";
               confirm_exit = true;
+            }
+          ];
+          image_default = [
+            {
+              command = "feh";
             }
           ];
           text_default = [
