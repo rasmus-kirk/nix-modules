@@ -53,7 +53,6 @@ in {
   config = mkIf cfg.enable {
     programs.zsh.initExtra = mkIf cfg.enableZshIntegration ''
       # bat
-      export MANPAGER="sh -c 'col -bx | bat -l man -p'"
       alias fzf="fzf --preview 'bat --color=always --style=numbers --line-range=:500 {}'"
       alias bathelp='bat --plain --language=help'
       help() {
@@ -114,6 +113,7 @@ in {
       duf
       du-dust
       trash-cli
+      bat-extras.batman
     ];
   };
 }

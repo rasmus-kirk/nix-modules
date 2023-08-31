@@ -67,6 +67,7 @@ in {
         J = "zoom in";
         L = "navigate next";
         i = "recolor";
+        "<A-n>" = "search backward";
         "<Right>" = "navigate next";
         "<Left>" = "navigate previous";
         "[fullscreen] f" = "toggle_fullscreen";
