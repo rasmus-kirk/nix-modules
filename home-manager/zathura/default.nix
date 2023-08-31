@@ -39,12 +39,12 @@ in {
           recolor-keephue = "true";
         }
         (mkIf (cfg.colorscheme != {}) {
-          default-bg = "#${cfg.colorscheme.bg} #00";
-          default-fg = "#${cfg.colorscheme.fg} #01";
-          statusbar-fg = "#${cfg.colorscheme.fg} #04";
-          statusbar-bg = "#${cfg.colorscheme.black} #01";
-          inputbar-bg = "#${cfg.colorscheme.bg} #00";
-          inputbar-fg = "#${cfg.colorscheme.white} #02";
+          default-bg = "#${cfg.colorscheme.bg}";
+          default-fg = "#${cfg.colorscheme.fg}";
+          statusbar-fg = "#${cfg.colorscheme.fg}";
+          statusbar-bg = "#${cfg.colorscheme.black}";
+          inputbar-bg = "#${cfg.colorscheme.bg}";
+          inputbar-fg = "#${cfg.colorscheme.white}";
           notification-bg = "#${cfg.colorscheme.fg} #08";
           notification-fg = "#${cfg.colorscheme.bg} #00";
           notification-error-bg = "#${cfg.colorscheme.red} #08";
