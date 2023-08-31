@@ -21,6 +21,8 @@ with lib; let
     nil
     # Rust
     rust-analyzer-unwrapped
+    # Scala
+    metals
     # Makdown
     marksman
     # Latex
