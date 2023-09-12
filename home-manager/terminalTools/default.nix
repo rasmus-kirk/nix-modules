@@ -108,7 +108,7 @@ in {
       silver-searcher
       jq
       tealdeer
-      exa
+      eza
       fd
       duf
       du-dust
