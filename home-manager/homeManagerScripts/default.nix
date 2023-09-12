@@ -47,6 +47,18 @@ with lib; let
       home-manager switch -b backup --flake ${configDir}#${cfg.machine}
     '';
   };
+
+  hm-rollback = pkgs.writeShellApplication {
+    name = "hm-rollback";
+    runtimeInputs = [pkgs.fzf];
+    text = ''
+      gen=$(home-manager generations | grep -P "^[0-9]{4}-[0-9]{2}-[0-9]{2}" | fzf)
+      genPath=$(echo "$gen" | grep -oP "/nix/store/.*")
+
+      echo -e '\033[1mActivating selected generation:\n\033[0m'
+      "$genPath"/activate
+    '';
+  };
 in {
   options.kirk.homeManagerScripts = {
     enable = mkEnableOption "home manager scripts";
@@ -71,6 +83,7 @@ in {
       hm-upgrade
       hm-rebuild
       hm-clean
+      hm-rollback
     ];
   };
 }
