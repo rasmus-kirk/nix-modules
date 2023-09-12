@@ -18,6 +18,8 @@ with lib; let
     nodePackages_latest.vscode-langservers-extracted
     # Bash
     nodePackages_latest.bash-language-server
+    # C-sharp
+    omnisharp-roslyn
     # Docker files
     nodePackages_latest.dockerfile-language-server-nodejs
     # Typescript
