@@ -52,6 +52,11 @@ in {
 
   config = mkIf cfg.enable {
     programs.zsh.initExtra = mkIf cfg.enableZshIntegration ''
+      fif() {
+        if [ ! "$#" -gt 0 ]; then echo "Need a string to search for!"; return 1; fi
+        rg --files-with-matches --no-messages "$1" | fzf --preview "highlight -O ansi -l {} 2> /dev/null | rg --colors 'match:bg:yellow' --ignore-case --pretty --context 10 '$1' || rg --ignore-case --pretty --context 10 '$1' {}"
+      }
+
       # bat
       alias fzf="fzf --preview 'bat --color=always --style=numbers --line-range=:500 {}'"
       alias bathelp='bat --plain --language=help'
@@ -60,8 +65,8 @@ in {
       }
 
       # exa
-      alias ll="exa --icons --long"
-      alias lh="exa --icons --long --all"
+      alias ll="eza --icons --long"
+      alias lh="eza --icons --long --all"
     '';
 
     systemd.user = mkIf cfg.trashCleaner.enable {
