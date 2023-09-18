@@ -538,6 +538,8 @@ in {
           image_default = [
             {
               command = "feh";
+              fork = true;
+              silent = true;
             }
           ];
           text_default = [

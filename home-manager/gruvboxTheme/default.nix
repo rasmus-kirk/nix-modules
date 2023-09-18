@@ -1,6 +1,8 @@
 {lib, ...}: {
   options.kirk.gruvbox = {
     colorscheme = lib.mkOption {
+      description = "A definition for the gruvbox theme.";
+
       type = lib.types.attrs;
       default = {
         bg = "282828";
@@ -28,8 +30,6 @@
           teal = "8ec07c";
         };
       };
-
-      description = "A definition for the gruvbox theme.";
     };
   };
 }

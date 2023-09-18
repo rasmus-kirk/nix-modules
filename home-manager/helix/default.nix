@@ -6,12 +6,12 @@
 }:
 with lib; let
   # Helix expects the `haskell-language-server-wrapper` to be named `haskell-language-server`
-  hs-wrapper = pkgs.writeShellApplication {
-    name = "haskell-language-server";
-    text = ''
-      haskell-language-server-wrapper
-    '';
-  };
+  #hs-wrapper = pkgs.writeShellApplication {
+  #  name = "haskell-language-server";
+  #  text = ''
+  #    haskell-language-server-wrapper
+  #  '';
+  #};
   cfg = config.kirk.helix;
   mostLsps = with pkgs; [
     # JSON, HTML, CSS, SCSS
@@ -37,9 +37,9 @@ with lib; let
     # Latex
     texlab
     # Haskell
-    hs-wrapper
-    haskell-language-server
-    ghc
+    #hs-wrapper
+    #haskell-language-server
+    #ghc
     # Go
     gopls
     # Debugger: Rust/CPP/C/Zig
