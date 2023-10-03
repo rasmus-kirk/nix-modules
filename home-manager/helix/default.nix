@@ -72,6 +72,15 @@ in {
     programs.helix = {
       enable = true;
 
+      languages = {
+        c-sharp = {
+          language-server = {
+            command = "dotnet";
+            args = [ "${pkgs.omnisharp-roslyn}/bin/OmniSharp" "--languageserver" ];
+          };
+        };
+      };
+
       settings = {
         theme = "gruvbox";
 
