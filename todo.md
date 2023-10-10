@@ -1,0 +1,4 @@
+- VS-code
+  - Dance config
+  - Declarative addons
+  - https://github.com/Microsoft/vscode/issues/32037

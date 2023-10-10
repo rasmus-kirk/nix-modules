@@ -120,6 +120,9 @@ in {
 
         # Make Helix more like kakoune
         keys.insert = {
+          # Alt-s to save
+          "A-s" = ":w";
+
           "A-l" = "goto_next_buffer";
           "A-h" = "goto_previous_buffer";
 
@@ -130,6 +133,9 @@ in {
         };
 
         keys.normal = {
+          # Alt-s to save
+          "A-s" = ":w";
+
           W = "extend_next_word_end";
           B = "extend_prev_word_start";
           L = "extend_char_right";
