@@ -122,6 +122,8 @@ in {
         keys.insert = {
           # Alt-s to save
           "A-s" = ":w";
+          # Alt-w to close buffer
+          "A-w" = ":buffer-close";
 
           "A-l" = "goto_next_buffer";
           "A-h" = "goto_previous_buffer";
@@ -135,6 +137,8 @@ in {
         keys.normal = {
           # Alt-s to save
           "A-s" = ":w";
+          # Alt-w to close buffer
+          "A-w" = ":buffer-close";
 
           W = "extend_next_word_end";
           B = "extend_prev_word_start";
