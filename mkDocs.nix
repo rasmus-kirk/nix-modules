@@ -10,7 +10,7 @@
   # instantiating derivations.
   # evaluate our options
   eval = lib.evalModules {
-    # todo understand why pkgs needs to be passed here
+    # TODO: understand why pkgs needs to be passed here
     specialArgs = {inherit pkgs;};
     modules = [
       {

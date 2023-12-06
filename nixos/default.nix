@@ -1,1 +1,6 @@
-{ }
+{
+  imports = [
+    ./nixosScripts
+    ./servarr
+  ];
+}
