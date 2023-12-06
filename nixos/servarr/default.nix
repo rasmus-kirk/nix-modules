@@ -1,6 +1,7 @@
 # TODO: Dir creation and file permissions in nix
 # TODO: Port configuration
 {
+  pkgs,
   config,
   lib,
   ...
@@ -210,7 +211,7 @@ in {
       recommendedOptimisation = true;
       recommendedGzipSettings = true;
 
-      virtualHosts."${cfg.domain}" = {
+      virtualHosts."${cfg.domainName}" = {
         enableACME = true;
         forceSSL = true;
         locations."/" = {

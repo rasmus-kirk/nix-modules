@@ -5,7 +5,7 @@
   ...
 }:
 with lib; let
-  cfg = config.kirk.homeManagerScripts;
+  cfg = config.kirk.nixosScripts;
 
   nos-update = pkgs.writeShellApplication {
     name = "nos-update";
@@ -50,12 +50,12 @@ in {
     configDir = mkOption {
       type = types.path;
       default = "/etc/nixos";
-      description = "Path to the home-manager configuration.";
+      description = "Path to the nixos configuration.";
     };
   };
 
   config = mkIf cfg.enable {
-    home.packages = [
+    environment.systemPackages = [
       nos-update
       nos-upgrade
       nos-rebuild
