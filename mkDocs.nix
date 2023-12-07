@@ -9,7 +9,7 @@
   # Make sure the used package is scrubbed to avoid actually
   # instantiating derivations.
   # evaluate our options
-  eval = lib.evalModules {
+  evalHome = lib.evalModules {
     # TODO: understand why pkgs needs to be passed here
     specialArgs = {inherit pkgs;};
     modules = [
@@ -36,11 +36,30 @@
     ];
   };
   # generate our docs
-  optionsDoc = nixosOptionsDoc {
-    inherit (eval) options;
+  optionsDocHome = nixosOptionsDoc {
+    inherit (evalHome) options;
   };
+
+  # Same for nixos
+  evalNixos = lib.evalModules {
+    specialArgs = {inherit pkgs;};
+    modules = [
+      {
+        config._module.check = false;
+      }
+      inputs.home-manager.nixosModules.default
+      ./nixos/servarr
+      ./nixos/nixosScripts
+    ];
+  };
+  optionsDocNixos = nixosOptionsDoc {
+    inherit (evalNixos) options;
+  };
+
 in
   # create a derivation for capturing the markdown output
   runCommand "options-doc.md" {} ''
-    cat ${optionsDoc.optionsCommonMark} | tail -n +210 >> $out
+    mkdir -p $out
+    cat ${optionsDocHome.optionsCommonMark} | tail -n +210 >> $out/home.md
+    cat ${optionsDocNixos.optionsCommonMark} | tail -n +210 >> $out/nixos.md
   ''

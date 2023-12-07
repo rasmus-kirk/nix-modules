@@ -8,7 +8,7 @@ with lib; let
   cfg = config.kirk.zsh;
 in {
   options.kirk.zsh = {
-    enable = mkEnableOption "kakoune text editor";
+    enable = mkEnableOption "zsh configuration.";
   };
 
   config = mkIf cfg.enable {
