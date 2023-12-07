@@ -195,6 +195,7 @@ in {
     # Create docker compose service for the servarr containers
     systemd.services.servarr-docker-compose = {
       script = ''
+        echo "Reading config: ${servarr-config}"
         ${pkgs.docker}/bin/docker container prune -f
         ${pkgs.docker-compose}/bin/docker-compose -f ${servarr-config} up --force-recreate --remove-orphans
       '';
