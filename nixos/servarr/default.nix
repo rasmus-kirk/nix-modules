@@ -38,13 +38,13 @@ in {
     '';
 
     domainName = mkOption {
-      type = types.nullOr types.string;
+      type = types.nullOr types.str;
       default = null;
       description = "REQUIRED! The domain name to host jellyfin on.";
     };
 
     acmeMail = mkOption {
-      type = types.nullOr types.string;
+      type = types.nullOr types.str;
       default = null;
       description = "REQUIRED! The ACME mail.";
     };
@@ -68,13 +68,97 @@ in {
     };
 
     timezone = mkOption {
-      type = types.string;
+      type = types.str;
       default = "Etc/UTC";
       description = "Your timezone, used for logging purposes.";
     };
 
-    rtorrentLimits = {
-      enable = mkEnableOption "Enable rtorrent limits.";
+    gluetun = {
+      extraConfig = mkOption {
+        type = types.attrs;
+        default = {};
+        description = "Extra config for the service.";
+      };
+    };
+    rflood = {
+      port = mkOption {
+        type = types.port;
+        default = 6001;
+        description = "Port of rflood.";
+      };
+      extraConfig = mkOption {
+        type = types.attrs;
+        default = {};
+        description = "Extra config for the service.";
+      };
+      ulimits = {
+        enable = mkEnableOption ''
+          Enable rtorrent ulimits. I had a bug that caused rtorrent to fail
+          and log `std::bad_alloc`. Setting ulimits for this service fixed
+          the issue. You probably don't want to set this unless you have
+          similar issues.See link below for more info:
+
+          https://stackoverflow.com/questions/75536471/rtorrent-docker-container-failing-to-start-saying-stdbad-alloc
+        '';
+        hard = mkOption {
+          type = types.ints.unsigned;
+          default = 1024;
+          description = "The hard limit.";
+        };
+        soft = mkOption {
+          type = types.ints.unsigned;
+          default = 1024;
+          description = "The soft limit.";
+        };
+      };
+    };
+    prowlarr = {
+      port = mkOption {
+        type = types.port;
+        default = 6002;
+        description = "Port of prowlarr.";
+      };
+      extraConfig = mkOption {
+        type = types.attrs;
+        default = {};
+        description = "Extra config for the service.";
+      };
+    };
+    sonarr = {
+      port = mkOption {
+        type = types.port;
+        default = 6003;
+        description = "Port of sonarr.";
+      };
+      extraConfig = mkOption {
+        type = types.attrs;
+        default = {};
+        description = "Extra config for the service.";
+      };
+    };
+    radarr = {
+      port = mkOption {
+        type = types.port;
+        default = 6004;
+        description = "Port of radarr.";
+      };
+      extraConfig = mkOption {
+        type = types.attrs;
+        default = {};
+        description = "Extra config for the service.";
+      };
+    };
+    jellyfin = {
+      port = mkOption {
+        type = types.port;
+        default = 8096;
+        description = "Port of Jellyfin.";
+      };
+      extraConfig = mkOption {
+        type = types.attrs;
+        default = {};
+        description = "Extra config for the service.";
+      };
     };
   };
 
@@ -85,7 +169,7 @@ in {
         openvpn_user.file = cfg.mullvadAcc;
       };
       services = {
-        gluetun = {
+        gluetun = cfg.gluetun.extraConfig // {
           image = "qmcgaw/gluetun";
           container_name = "gluetun";
           cap_add = ["NET_ADMIN"];
@@ -94,10 +178,10 @@ in {
             "8888:8888/tcp" # HTTP proxy
             "8388:8388/tcp" # Shadowsocks
             "8388:8388/udp" # Shadowsocks
-            "6002:3000" # rflood
-            "6003:9696" # prowlarr
-            "6004:8989" # sonarr
-            "6005:7878" # radarr
+            "${builtins.toString cfg.rflood.port}:3000"
+            "${builtins.toString cfg.prowlarr.port}:9696"
+            "${builtins.toString cfg.sonarr.port}:8989"
+            "${builtins.toString cfg.radarr.port}:7878"
           ];
           volumes = [ "/data/.state/servarr/gluetun:/gluetun" ];
           secrets = [ "openvpn_user" ];
@@ -109,7 +193,7 @@ in {
             "UPDATER_PERIOD=24h"
           ];
         };
-        prowlarr = {
+        prowlarr = cfg.prowlarr.extraConfig // {
           container_name = "prowlarr";
           image = "ghcr.io/hotio/prowlarr";
           restart = "unless-stopped";
@@ -122,7 +206,7 @@ in {
           ];
           volumes = [ "${cfg.stateDir}/servarr/prowlarr:/config" ];
         };
-        rflood = {
+        rflood = cfg.rflood.extraConfig // {
           container_name = "rflood";
           image = "ghcr.io/hotio/rflood";
           restart = "unless-stopped";
@@ -134,16 +218,16 @@ in {
             "TZ=${cfg.timezone}"
             "FLOOD_AUTH=false"
           ];
-          ulimits.nofile = {
-            hard = 1024;
-            soft = 1024;
-          };
+          ulimits.nofile = if cfg.rflood.ulimits.enable then {
+            hard = cfg.rflood.ulimits.hard;
+            soft = cfg.rflood.ulimits.soft;
+          } else {};
           volumes = [
             "${cfg.mediaDir}/torrents:/data/torrents"
             "${cfg.stateDir}/servarr/rflood:/config"
           ];
         };
-        radarr = {
+        radarr = cfg.radarr.extraConfig // {
           container_name = "radarr";
           image = "ghcr.io/hotio/radarr";
           restart = "unless-stopped";
@@ -159,7 +243,7 @@ in {
             "${cfg.stateDir}/servarr/radarr:/config"
           ];
         };
-        sonarr = {
+        sonarr = cfg.sonarr.extraConfig // {
           container_name = "sonarr";
           image = "ghcr.io/hotio/sonarr";
           restart = "unless-stopped";
@@ -175,11 +259,11 @@ in {
             "${cfg.stateDir}/servarr/sonarr:/config"
           ];
         };
-        jellyfin = {
+        jellyfin = cfg.jellyfin.extraConfig // {
           container_name = "jellyfin";
           image = "ghcr.io/hotio/jellyfin";
           restart = "unless-stopped";
-          ports = [ "8096:8096" ];
+          ports = [ "${builtins.toString cfg.jellyfin.port}:8096" ];
           environment = [
             "PUID=1000"
             "PGID=1000"
@@ -226,7 +310,7 @@ in {
         locations."/" = {
           recommendedProxySettings = true;
           proxyWebsockets = true;
-          proxyPass = "http://127.0.0.1:8096";
+          proxyPass = "http://127.0.0.1:${builtins.toString cfg.jellyfin.port}";
         };
       };
     };
