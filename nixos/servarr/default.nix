@@ -72,6 +72,10 @@ in {
       default = "Etc/UTC";
       description = "Your timezone, used for logging purposes.";
     };
+
+    rtorrentLimits = {
+      enable = mkEnableOption "Enable rtorrent limits.";
+    };
   };
 
   config = let
@@ -130,6 +134,10 @@ in {
             "TZ=${cfg.timezone}"
             "FLOOD_AUTH=false"
           ];
+          ulimits.nofile = {
+            hard = 1024;
+            soft = 1024;
+          };
           volumes = [
             "${cfg.mediaDir}/torrents:/data/torrents"
             "${cfg.stateDir}/servarr/rflood:/config"
