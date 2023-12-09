@@ -10,7 +10,7 @@ with lib; let
   nos-update = pkgs.writeShellApplication {
     name = "nos-update";
     text = ''
-      nix flake update ${configDir}
+      nix flake update ${cfg.configDir}
     '';
   };
 
@@ -18,8 +18,8 @@ with lib; let
     name = "nos-upgrade";
     text = ''
       # Update, switch to new config, and cleanup
-      ${hm-update}/bin/hm-update &&
-      ${hm-rebuild}/bin/hm-rebuild &&
+      ${nos-update}/bin/hm-update &&
+      ${nos-rebuild}/bin/hm-rebuild &&
     '';
   };
 
@@ -27,9 +27,10 @@ with lib; let
     name = "nos-rebuild";
     text = ''
       # Update the inputs of this repo on every rebuild
-      nix flake lock --update-input kirk-modules ${configDir}
+      nix flake lock --update-input kirk-modules ${cfg.onfigDir} &&
       # Switch configuration, backing up files
-      nixos-rebuild switch --flake ${configDir}#${cfg.machine}
+      nixos-rebuild switch --flake ${cfg.configDir}#${cfg.machine} &&
+      hm-upgrade || echo "Couldn't run home-manager upgrade script!"
     '';
   };
 in {
