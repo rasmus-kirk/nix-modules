@@ -73,7 +73,7 @@ in {
 
     machine = mkOption {
       type = types.nullOr types.str;
-      description = "Path to the home-manager configuration.";
+      description = "REQUIRED! Path to the home-manager configuration.";
     };
   };
 
