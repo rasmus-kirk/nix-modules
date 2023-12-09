@@ -20,6 +20,21 @@ with lib; let
       # Update, switch to new config, and cleanup
       ${nos-update}/bin/hm-update &&
       ${nos-rebuild}/bin/hm-rebuild &&
+      ${nos-clean}/bin/hm-clean &&
+      hm-upgrade || echo "Couldn't run home-manager upgrade script, perhaphs you don't have home-manager scripts enabled? Upgrade otherwise successful."
+    '';
+  };
+
+  nos-clean = pkgs.writeShellApplication {
+    name = "nos-clean";
+    text = ''
+      # Delete old home-manager profiles
+      nix-env --delete-generations 30d &&
+      # Delete old nix profiles
+      nix profile wipe-history --older-than 30d &&
+      # Optimize space
+      nix store gc &&
+      nix store optimise
     '';
   };
 
@@ -27,10 +42,9 @@ with lib; let
     name = "nos-rebuild";
     text = ''
       # Update the inputs of this repo on every rebuild
-      nix flake lock --update-input kirk-modules ${cfg.onfigDir} &&
+      nix flake lock --update-input kirk-modules ${cfg.configDir} &&
       # Switch configuration, backing up files
-      nixos-rebuild switch --flake ${cfg.configDir}#${cfg.machine} &&
-      hm-upgrade || echo "Couldn't run home-manager upgrade script!"
+      nixos-rebuild switch --flake ${cfg.configDir}#${cfg.machine}
     '';
   };
 in {
@@ -59,6 +73,7 @@ in {
     environment.systemPackages = [
       nos-update
       nos-upgrade
+      nos-clean
       nos-rebuild
     ];
   };
