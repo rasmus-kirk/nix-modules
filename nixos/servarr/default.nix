@@ -318,11 +318,13 @@ in {
             upnpc -r 443 TCP
             upnpc -r 443 UDP
 
-            upnpc -r ${builtins.toString cfg.rflood.peerTrafficPort} TCP
-            upnpc -r ${builtins.toString cfg.rflood.peerTrafficPort} UDP
+            upnpc -r "${builtins.toString cfg.rflood.peerTrafficPort}" TCP
+            upnpc -r "${builtins.toString cfg.rflood.peerTrafficPort}" UDP
 
-            upnpc -r ${builtins.toString cfg.rflood.dhtPort} TCP
-            upnpc -r ${builtins.toString cfg.rflood.dhtPort} UDP
+            upnpc -r "${builtins.toString cfg.rflood.dhtPort}" TCP
+            upnpc -r "${builtins.toString cfg.rflood.dhtPort}" UDP
+
+            echo "Successfully requested upnp ports to be opened."
           '';
         };
       in {
