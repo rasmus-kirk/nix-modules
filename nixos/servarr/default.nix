@@ -324,10 +324,12 @@ in {
         };
       in {
         upnpc = {
-          Unit.Description = "Sets port on router";
+          enable = true;
+          description = "Sets port on router";
+          script = "${upnp-ports}/bin/upnp-ports";
 
-          Service = {
-            ExecStart = "${upnp-ports}/bin/upnp-ports";
+          serviceConfig = {
+            User = "root";
             Type = "oneshot";
           };
         };
@@ -345,15 +347,14 @@ in {
 
       timers = {
         upnpc = {
-          Unit.Description = "Sets port on router";
+          description = "Sets port on router";
+          wantedBy = ["timers.target"];
 
-          Timer = {
+          timerConfig = {
             OnCalendar = "daily";
             Persistent = "true"; # Run service immediately if last window was missed
             RandomizedDelaySec = "1h"; # Run service OnCalendar +- 1h
           };
-
-          Install.WantedBy = ["timers.target"];
         };
       };
     };
