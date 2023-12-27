@@ -370,7 +370,7 @@ in {
       recommendedOptimisation = true;
       recommendedGzipSettings = true;
 
-      virtualHosts."${cfg.domainName}" = {
+      virtualHosts."${builtins.replaceStrings ["\n"] [""] cfg.domainName}" = {
         enableACME = true;
         forceSSL = true;
         locations."/" = {
