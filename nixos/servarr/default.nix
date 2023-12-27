@@ -314,6 +314,7 @@ in {
           text = ''
             upnpc -r 80 TCP
             upnpc -r 80 UDP
+
             upnpc -r 443 TCP
             upnpc -r 443 UDP
 
@@ -361,8 +362,13 @@ in {
       };
     };
 
-    # Not sure if this is necessary, `services.nginx` may do it by default
-    networking.firewall.allowedTCPPorts = [ 80 443 50000 ];
+    networking.firewall.allowedTCPPorts = [ 
+      80 # http
+      443 # https
+      50000 # rTorrent
+      6881 # rTorrent DHT
+    ];
+
     services.nginx = {
       enable = true;
 
