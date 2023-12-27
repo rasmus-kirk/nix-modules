@@ -300,7 +300,6 @@ in {
       extraPackages = [ pkgs.docker-compose ];
     };
     # Create docker compose service for the servarr containers
-    systemd.services.
     systemd = {
       services = let 
         upnp-ports = pkgs.writeShellApplication {
