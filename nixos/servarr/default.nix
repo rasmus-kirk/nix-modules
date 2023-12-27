@@ -84,8 +84,21 @@ in {
       port = mkOption {
         type = types.port;
         default = 6001;
-        description = "Port of rflood.";
+        description = "Port of rflood webui.";
       };
+
+      peerTrafficPort = mkOption {
+        type = types.port;
+        default = 50000;
+        description = "Rtorrent peer traffic port.";
+      };
+
+      dhtPort = mkOption {
+        type = types.port;
+        default = 6881;
+        description = "Rtorrent dht port.";
+      };
+
       extraConfig = mkOption {
         type = types.attrs;
         default = {};
@@ -178,6 +191,8 @@ in {
             "8888:8888/tcp" # HTTP proxy
             "8388:8388/tcp" # Shadowsocks
             "8388:8388/udp" # Shadowsocks
+            "${builtins.toString cfg.rflood.dhtPort}:6881"
+            "${builtins.toString cfg.rflood.peerTrafficPort}:50000"
             "${builtins.toString cfg.rflood.port}:3000"
             "${builtins.toString cfg.prowlarr.port}:9696"
             "${builtins.toString cfg.sonarr.port}:8989"
@@ -285,18 +300,65 @@ in {
       extraPackages = [ pkgs.docker-compose ];
     };
     # Create docker compose service for the servarr containers
-    systemd.services.servarr-docker-compose = {
-      script = ''
-        echo "Reading config: ${servarr-config}"
-        ${pkgs.docker}/bin/docker container prune -f
-        ${pkgs.docker-compose}/bin/docker-compose -f ${servarr-config} up --force-recreate --remove-orphans
-      '';
-      wantedBy = ["multi-user.target"];
-      after = ["docker.service" "docker.socket"];
+    systemd.services.
+    systemd = {
+      services = let 
+        upnp-ports = pkgs.writeShellApplication {
+          name = "upnp-ports";
+
+          runtimeInputs = with pkgs; [miniupnpc];
+
+          text = ''
+            upnpc -r 80 TCP
+            upnpc -r 80 UDP
+            upnpc -r 443 TCP
+            upnpc -r 443 UDP
+
+            upnpc -r ${builtins.toString cfg.rflood.peerTrafficPort} TCP
+            upnpc -r ${builtins.toString cfg.rflood.peerTrafficPort} UDP
+
+            upnpc -r ${builtins.toString cfg.rflood.dhtPort} TCP
+            upnpc -r ${builtins.toString cfg.rflood.dhtPort} UDP
+          '';
+        };
+      in {
+        upnpc = {
+          Unit.Description = "Sets port on router";
+
+          Service = {
+            ExecStart = "${upnp-ports}/bin/upnp-ports";
+            Type = "oneshot";
+          };
+        };
+
+        servarr-docker-compose = {
+          script = ''
+            echo "Reading config: ${servarr-config}"
+            ${pkgs.docker}/bin/docker container prune -f
+            ${pkgs.docker-compose}/bin/docker-compose -f ${servarr-config} up --force-recreate --remove-orphans
+          '';
+          wantedBy = ["multi-user.target"];
+          after = ["docker.service" "docker.socket"];
+        };
+      };
+
+      timers = {
+        upnpc = {
+          Unit.Description = "Sets port on router";
+
+          Timer = {
+            OnCalendar = "daily";
+            Persistent = "true"; # Run service immediately if last window was missed
+            RandomizedDelaySec = "1h"; # Run service OnCalendar +- 1h
+          };
+
+          Install.WantedBy = ["timers.target"];
+        };
+      };
     };
 
     # Not sure if this is necessary, `services.nginx` may do it by default
-    networking.firewall.allowedTCPPorts = [ 80 443 ];
+    networking.firewall.allowedTCPPorts = [ 80 443 50000 ];
     services.nginx = {
       enable = true;
 
