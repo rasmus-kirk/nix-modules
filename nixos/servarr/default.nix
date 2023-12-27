@@ -13,13 +13,15 @@ in {
   options.kirk.servarr = {
     enable = mkEnableOption ''
       My servarr setup. Hosts Jellyfin on the given domain (remember domain
-      records/port forwarding) and hosts the following services on localhost
-      through a mullvad VPN:
+      records), tries to port forward ports 80, 443, 50000 (rTorrent) using
+      upnp and hosts the following services on localhost through a mullvad VPN:
 
       - Prowlarr
       - Sonarr
       - Radarr
       - Flood/Rtorrnet
+
+      Note that Jellyfin is _not_ run through the VPN.
 
       Required options for this module:
 
