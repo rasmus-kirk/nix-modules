@@ -75,6 +75,8 @@ in {
       description = "Your timezone, used for logging purposes.";
     };
 
+    upnp.enable = mkEnableOption "Enable automatic port forwarding using UPNP.";
+
     gluetun = {
       extraConfig = mkOption {
         type = types.attrs;
@@ -323,7 +325,7 @@ in {
           '';
         };
       in {
-        upnpc = {
+        upnpc = mkIf cfg.upnp.enable {
           enable = true;
           description = "Sets port on router";
           script = "${upnp-ports}/bin/upnp-ports";
@@ -346,7 +348,7 @@ in {
       };
 
       timers = {
-        upnpc = {
+        upnpc = mkIf cfg.upnp.enable {
           description = "Sets port on router";
           wantedBy = ["timers.target"];
 
