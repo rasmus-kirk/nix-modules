@@ -320,7 +320,7 @@ in {
     # https://github.com/miniupnp/miniupnp/blob/8ced59d384de13689d3b1c32405bcb562030b241/miniupnpc/README
     #
     # TODO: Understand this properly
-    networking.firewall.extraCommands = mkif cfg.upnp.enable ''
+    networking.firewall.extraCommands = ''
       # Rules for IPv4:
       ${pkgs.ipset}/bin/ipset create upnp hash:ip,port timeout 3
       iptables -A OUTPUT -d 239.255.255.250/32 -p udp -m udp --dport 1900 -j SET --add-set upnp src,src --exist
