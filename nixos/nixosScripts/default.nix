@@ -18,9 +18,9 @@ with lib; let
     name = "nos-upgrade";
     text = ''
       # Update, switch to new config, and cleanup
-      ${nos-update}/bin/hm-update &&
-      ${nos-rebuild}/bin/hm-rebuild &&
-      ${nos-clean}/bin/hm-clean &&
+      ${nos-update}/bin/nos-update &&
+      ${nos-rebuild}/bin/nos-rebuild &&
+      ${nos-clean}/bin/nos-clean &&
       hm-upgrade || echo "Couldn't run home-manager upgrade script, perhaphs you don't have home-manager scripts enabled? Upgrade otherwise successful."
     '';
   };
