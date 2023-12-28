@@ -297,11 +297,21 @@ in {
       };
     }; 
   in mkIf cfg.enable {
-    # Install docker
-    virtualisation.docker = {
-      enable = true;
-      autoPrune.enable = true;
-      extraPackages = [ pkgs.docker-compose ];
+    # virtualisation.docker = {
+    #   enable = true;
+    #   autoPrune.enable = true;
+    #   extraPackages = [ pkgs.docker-compose ];
+    # };
+
+    # Install podman
+    virtualisation = {
+      podman = {
+        enable = true;
+        # Create a `docker` alias for podman, to use it as a drop-in replacement
+        dockerCompat = true;
+        # Required for containers under podman-compose to be able to talk to each other.
+        defaultNetwork.settings.dns_enabled = true;
+      };
     };
 
     # UPNPC firewall access, if not set, then upnpc will fail with "No IGD
@@ -376,13 +386,21 @@ in {
         };
 
         servarr-docker-compose = {
-          script = ''
-            echo "Reading config: ${servarr-config}"
-            ${pkgs.docker}/bin/docker container prune -f
-            ${pkgs.docker-compose}/bin/docker-compose -f ${servarr-config} up --force-recreate --remove-orphans
-          '';
+          script = let
+            run-servarr = pkgs.writeShellApplication {
+              name = "run-servarr";
+
+              runtimeInputs = with pkgs; [podman-compose podman];
+
+              text = ''
+                echo "Reading config: ${servarr-config}"
+                ${pkgs.podman}/bin/podman container prune -f
+                ${pkgs.podman}/bin/podman compose -f ${servarr-config} up --force-recreate --remove-orphans
+              '';
+            };
+          in "${run-servarr}/bin/run-servarr";
           wantedBy = ["multi-user.target"];
-          after = ["docker.service" "docker.socket"];
+          after = ["podman.service" "podman.socket"];
         };
       };
 
