@@ -24,7 +24,7 @@ with lib; let
   hm-update = pkgs.writeShellApplication {
     name = "hm-update";
     text = ''
-      nix flake update ${configDir}
+      nix flake update --flake ${configDir}
     '';
   };
 
@@ -42,7 +42,7 @@ with lib; let
     name = "hm-rebuild";
     text = ''
       # Update the inputs of this repo on every rebuild
-      nix flake update kirk-modules ${configDir}
+      nix flake update kirk-modules --flake ${configDir}
       # Switch configuration, backing up files
       home-manager switch -b backup --flake ${configDir}#${cfg.machine}
     '';

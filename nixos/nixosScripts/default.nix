@@ -10,7 +10,7 @@ with lib; let
   nos-update = pkgs.writeShellApplication {
     name = "nos-update";
     text = ''
-      nix flake update ${cfg.configDir}
+      nix flake update --flake ${cfg.configDir}
     '';
   };
 
@@ -42,7 +42,7 @@ with lib; let
     name = "nos-rebuild";
     text = ''
       # Update the inputs of this repo on every rebuild
-      nix flake update kirk-modules ${cfg.configDir} &&
+      nix flake update kirk-modules --flake ${cfg.configDir} &&
       # Switch configuration, backing up files
       # impure is a little disgusting, but will cause issues otherwise
       nixos-rebuild switch --flake ${cfg.configDir}#${cfg.machine} --show-trace --impure
