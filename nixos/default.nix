@@ -1,6 +1,7 @@
 {
   imports = [
     ./nixosScripts
+    ./vpnNamespace
     ./servarr
   ];
 }

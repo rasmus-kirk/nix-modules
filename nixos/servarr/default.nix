@@ -1,5 +1,4 @@
 # TODO: Dir creation and file permissions in nix
-# TODO: Port configuration
 {
   pkgs,
   config,
@@ -39,24 +38,6 @@ in {
       another VPN, create a PR or fork this repo!
     '';
 
-    domainName = mkOption {
-      type = types.nullOr types.str;
-      default = null;
-      description = "REQUIRED! The domain name to host jellyfin on.";
-    };
-
-    acmeMail = mkOption {
-      type = types.nullOr types.str;
-      default = null;
-      description = "REQUIRED! The ACME mail.";
-    };
-
-    mullvadAcc = mkOption {
-      type = types.nullOr types.path;
-      default = null;
-      description = "REQUIRED! The location the file containing your mullvad account key.";
-    };
-
     mediaDir = mkOption {
       type = types.path;
       default = "~/servarr";
@@ -77,11 +58,68 @@ in {
 
     upnp.enable = mkEnableOption "Enable automatic port forwarding using UPNP.";
 
+    vpn = {
+      enable = mkEnableOption ''enable vpn'';
+
+      wgConf = mkOption {
+        type = types.nullOr types.path;
+        default = null;
+        description = "REQUIRED! The path to the wireguard configuration file.";
+      };
+
+      wgAddress = mkOption {
+        type = types.nullOr types.path;
+        default = null;
+        description = "REQUIRED! wg address.";
+      };
+
+      dnsServer = mkOption {
+        type = types.str;
+        default = "1.1.1.2";
+        description = lib.mdDoc ''
+          YOUR VPN WILL LEAK IF THIS IS NOT SET. The dns address of your vpn
+        '';
+        example = "1.1.1.2";
+      };
+
+      openTcpPorts = mkOption {
+        type = with types; listOf port;
+        default = [];
+        description = lib.mdDoc ''
+          What TCP ports to allow incoming traffic from. You need this if
+          you're port forwarding on your VPN provider.
+        '';
+        example = [ 46382 38473 ];
+      };
+
+      openUdpPorts = mkOption {
+        type = with types; listOf port;
+        default = [];
+        description = lib.mdDoc ''
+          What UDP ports to allow incoming traffic from. You need this if
+          you're port forwarding on your VPN provider.
+        '';
+        example = [ 46382 38473 ];
+      };
+    };
+
     gluetun = {
       extraConfig = mkOption {
         type = types.attrs;
         default = {};
         description = "Extra config for the service.";
+      };
+
+      provider = mkOption {
+        type = types.nullOr types.str;
+        default = null;
+        description = "REQUIRED! The vpn provider for gluetun.";
+      };
+
+      wgConfig = mkOption {
+        type = types.nullOr types.path;
+        default = null;
+        description = "REQUIRED! The wireguard config for the vpn provider.";
       };
     };
     rflood = {
@@ -108,6 +146,7 @@ in {
         default = {};
         description = "Extra config for the service.";
       };
+
       ulimits = {
         enable = mkEnableOption ''
           Enable rtorrent ulimits. I had a bug that caused rtorrent to fail
@@ -117,11 +156,13 @@ in {
 
           https://stackoverflow.com/questions/75536471/rtorrent-docker-container-failing-to-start-saying-stdbad-alloc
         '';
+
         hard = mkOption {
           type = types.ints.unsigned;
           default = 1024;
           description = "The hard limit.";
         };
+
         soft = mkOption {
           type = types.ints.unsigned;
           default = 1024;
@@ -166,15 +207,22 @@ in {
       };
     };
     jellyfin = {
-      port = mkOption {
-        type = types.port;
-        default = 8096;
-        description = "Port of Jellyfin.";
-      };
-      extraConfig = mkOption {
-        type = types.attrs;
-        default = {};
-        description = "Extra config for the service.";
+      enable = mkEnableOption "Enable jellyfin";
+
+      nginx = {
+        enable = mkEnableOption "enable nginx for jellyfin";
+
+        domainName = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          description = "REQUIRED! The domain name to host jellyfin on.";
+        };
+
+        acmeMail = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          description = "REQUIRED! The ACME mail.";
+        };
       };
     };
   };
@@ -182,9 +230,6 @@ in {
   config = let
     # Create a docker compose yaml-file from the nix attribute set below:
     servarr-config = yaml.generate "servarr.yaml" {
-      secrets = { 
-        openvpn_user.file = cfg.mullvadAcc;
-      };
       services = {
         gluetun = cfg.gluetun.extraConfig // {
           image = "qmcgaw/gluetun";
@@ -195,19 +240,21 @@ in {
             "8888:8888/tcp" # HTTP proxy
             "8388:8388/tcp" # Shadowsocks
             "8388:8388/udp" # Shadowsocks
-            "${builtins.toString cfg.rflood.dhtPort}:6881"
-            "${builtins.toString cfg.rflood.peerTrafficPort}:50000"
+            #"${builtins.toString cfg.rflood.dhtPort}:6881"
+            #"${builtins.toString cfg.rflood.peerTrafficPort}:50000"
             "${builtins.toString cfg.rflood.port}:3000"
             "${builtins.toString cfg.prowlarr.port}:9696"
             "${builtins.toString cfg.sonarr.port}:8989"
             "${builtins.toString cfg.radarr.port}:7878"
           ];
-          volumes = [ "/data/.state/servarr/gluetun:/gluetun" ];
-          secrets = [ "openvpn_user" ];
+          volumes = [ 
+            "/data/.state/servarr/gluetun:/gluetun"
+            "${cfg.gluetun.wgConfig}:/gluetun/wireguard/wg0.conf"
+          ];
           environment = [
-            "VPN_SERVICE_PROVIDER=mullvad"
-            "VPN_TYPE=openvpn"
-            "OPENVPN_USER=/run/secrets/openvpn_user"
+            "VPN_SERVICE_PROVIDER=custom"
+            "VPN_TYPE=wireguard"
+            "FIREWALL_VPN_INPUT_PORTS=${builtins.toString cfg.rflood.peerTrafficPort}"
             "TZ=${cfg.timezone}"
             "UPDATER_PERIOD=24h"
           ];
@@ -278,40 +325,13 @@ in {
             "${cfg.stateDir}/servarr/sonarr:/config"
           ];
         };
-        jellyfin = cfg.jellyfin.extraConfig // {
-          container_name = "jellyfin";
-          image = "ghcr.io/hotio/jellyfin";
-          restart = "unless-stopped";
-          ports = [ "${builtins.toString cfg.jellyfin.port}:8096" ];
-          environment = [
-            "PUID=1000"
-            "PGID=1000"
-            "UMASK=002"
-            "TZ=${cfg.timezone}"
-          ];
-          volumes = [
-            "${cfg.mediaDir}/library:/data/library"
-            "${cfg.stateDir}/servarr/jellyfin:/config"
-          ];
-        };
       };
     }; 
   in mkIf cfg.enable {
-    # virtualisation.docker = {
-    #   enable = true;
-    #   autoPrune.enable = true;
-    #   extraPackages = [ pkgs.docker-compose ];
-    # };
-
-    # Install podman
-    virtualisation = {
-      podman = {
-        enable = true;
-        # Create a `docker` alias for podman, to use it as a drop-in replacement
-        dockerCompat = true;
-        # Required for containers under podman-compose to be able to talk to each other.
-        defaultNetwork.settings.dns_enabled = true;
-      };
+    virtualisation.docker = {
+      enable = true;
+      autoPrune.enable = true;
+      extraPackages = [ pkgs.docker-compose ];
     };
 
     # UPNPC firewall access, if not set, then upnpc will fail with "No IGD
@@ -345,6 +365,26 @@ in {
       ip6tables -A INPUT -d ff02::c/128 -p udp -m udp --dport 1900 -j ACCEPT
       ip6tables -A INPUT -d ff05::c/128 -p udp -m udp --dport 1900 -j ACCEPT
     '';
+
+    users.groups.media = {};
+    users.users = {
+      media = {
+        isSystemUser = true;
+        group = "media";
+      };
+    };
+
+    systemd.tmpfiles.rules = [
+      "d '${cfg.stateDir}' 0777 media media - -"
+      "d '${cfg.mediaDir}' 0777 media media - -"
+      "d '${cfg.mediaDir}/library' 0777 media media - -"
+    ];
+
+    services.jellyfin = mkIf cfg.jellyfin.enable {
+      enable = true;
+      group = "media";
+      user = "jellyfin";
+    };
 
     # Create docker compose service for the servarr containers
     #
@@ -390,17 +430,63 @@ in {
             run-servarr = pkgs.writeShellApplication {
               name = "run-servarr";
 
-              runtimeInputs = with pkgs; [podman-compose podman];
+              runtimeInputs = with pkgs; [docker-compose docker];
 
               text = ''
                 echo "Reading config: ${servarr-config}"
-                ${pkgs.podman}/bin/podman container prune -f
-                ${pkgs.podman}/bin/podman compose -f ${servarr-config} up --force-recreate --remove-orphans
+                ${pkgs.docker}/bin/docker container prune -f
+                ${pkgs.docker}/bin/docker compose -f ${servarr-config} up --force-recreate --remove-orphans
               '';
             };
           in "${run-servarr}/bin/run-servarr";
           wantedBy = ["multi-user.target"];
-          after = ["podman.service" "podman.socket"];
+          after = ["docker.service" "docker.socket"];
+        };
+        vpn-test = mkIf cfg.vpn.enable {
+          script = let
+            vpn-test = pkgs.writeShellApplication {
+              name = "vpn-test";
+
+              runtimeInputs = with pkgs; [ unixtools.ping coreutils curl bash libressl netcat-gnu openresolv ];
+
+              text = ''
+                #unset e
+
+                cd "$(mktemp -d)"
+
+                # Print resolv.conf
+                echo "/etc/resolv.conf contains:"
+                cat /etc/resolv.conf
+                echo ""
+
+                # Query resolvconf
+                echo "resolvconf output:"
+                resolvconf -l
+                echo ""
+
+                # Get ip
+                curl -s ipinfo.io
+
+                # DNS leak test
+                curl -s https://raw.githubusercontent.com/macvk/dnsleaktest/b03ab54d574adbe322ca48cbcb0523be720ad38d/dnsleaktest.sh -o dnsleaktest.sh
+                chmod +x dnsleaktest.sh
+                ./dnsleaktest.sh
+
+                echo "starting netcat on port ${builtins.toString cfg.rflood.peerTrafficPort}:"
+                nc -vnlp ${builtins.toString cfg.rflood.peerTrafficPort}
+              '';
+            };
+          in "${vpn-test}/bin/vpn-test";
+
+          bindsTo = [ "netns@wg.service" ];
+          requires = [ "network-online.target" ];
+          after = [ "wg.service" ];
+          serviceConfig = {
+            #User = "media";
+            #Group = "media";
+            NetworkNamespacePath = "/var/run/netns/wg";
+            BindReadOnlyPaths="/etc/netns/wg/resolv.conf:/etc/resolv.conf:norbind";
+          };
         };
       };
 
@@ -410,9 +496,9 @@ in {
           wantedBy = ["timers.target"];
 
           timerConfig = {
-            OnCalendar = "daily";
+            OnCalendar = "hourly";
             Persistent = "true"; # Run service immediately if last window was missed
-            RandomizedDelaySec = "1h"; # Run service OnCalendar +- 1h
+            RandomizedDelaySec = "5m"; # Run service OnCalendar +- 1h
           };
         };
       };
@@ -421,36 +507,54 @@ in {
     networking.firewall.allowedTCPPorts = [ 
       80 # http
       443 # https
-      50000 # rTorrent
-      6881 # rTorrent DHT
+      cfg.rflood.peerTrafficPort # rTorrent
+      cfg.rflood.dhtPort # rTorrent DHT
+      7000
     ];
 
     networking.firewall.allowedUDPPorts = [ 
-      50000 # rTorrent
-      6881 # rTorrent DHT
+      cfg.rflood.peerTrafficPort # rTorrent
+      cfg.rflood.dhtPort # rTorrent DHT
+      7000
     ];
 
-    services.nginx = {
+    kirk.vpnnamespace = {
+      enable = true;
+      accessibleFrom = [
+        "192.168.0.0/24"
+      ];
+      dnsServer = cfg.vpn.dnsServer;
+      wireguardAddressPath = cfg.vpn.wgAddress;
+      wireguardConfigFile = cfg.vpn.wgConf;
+      openTcpPorts = [ cfg.rflood.peerTrafficPort ] ++ cfg.vpn.openTcpPorts;
+      openUdpPorts = [ cfg.rflood.peerTrafficPort ] ++ cfg.vpn.openUdpPorts;
+      portMappings = [{
+        From = 7000;
+        To = 7000;
+      }];
+    };
+
+    services.nginx = mkIf (cfg.jellyfin.nginx.enable && cfg.jellyfin.enable) {
       enable = true;
 
       recommendedTlsSettings = true;
       recommendedOptimisation = true;
       recommendedGzipSettings = true;
 
-      virtualHosts."${builtins.replaceStrings ["\n"] [""] cfg.domainName}" = {
+      virtualHosts."${builtins.replaceStrings ["\n"] [""] cfg.jellyfin.nginx.domainName}" = {
         enableACME = true;
         forceSSL = true;
         locations."/" = {
           recommendedProxySettings = true;
           proxyWebsockets = true;
-          proxyPass = "http://127.0.0.1:${builtins.toString cfg.jellyfin.port}";
+          proxyPass = "http://127.0.0.1:8096";
         };
       };
     };
 
     security.acme = {
       acceptTerms = true;
-      defaults.email = cfg.acmeMail;
+      defaults.email = cfg.jellyfin.nginx.acmeMail;
     };
   };
 }
