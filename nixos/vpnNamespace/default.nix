@@ -127,6 +127,19 @@ in {
       '';
       example = [ 46382 38473 ];
     };
+
+    vpnTestService = {
+      enable = mkEnableOption "Enable the vpn test service.";
+
+      port = mkOption {
+        type = types.port;
+        default = [ 12300 ];
+        description = lib.mdDoc ''
+          The port that the vpn test service listens to.
+        '';
+        example = [ 58403 ];
+      };
+    };
   };
 
   config = mkIf cfg.enable {
@@ -143,94 +156,141 @@ in {
       };
     };
 
-    systemd.services.wg = {
-      description = "wg network interface";
-      bindsTo = [ "netns@wg.service" ];
-      requires = [ "network-online.target" ];
-      after = [ "netns@wg.service" ];
-      wantedBy = [ "netns@wg.service" ];
+    systemd.services = {
+      wg = {
+        description = "wg network interface";
+        bindsTo = [ "netns@wg.service" ];
+        requires = [ "network-online.target" ];
+        after = [ "netns@wg.service" ];
+        wantedBy = [ "netns@wg.service" ];
 
-      serviceConfig = let 
-        vpn-namespace = pkgs.writeShellApplication {
-          name = "vpn-namespace";
+        serviceConfig = let 
+          vpn-namespace = pkgs.writeShellApplication {
+            name = "vpn-namespace";
 
-          runtimeInputs = with pkgs; [ iproute2 wireguard-tools iptables ];
+            runtimeInputs = with pkgs; [ iproute2 wireguard-tools iptables ];
 
-          text = ''
-            echo "$PWD"
-            # Set up the wireguard interface
-            tmpdir=$(mktemp -d) 
-            cat ${cfg.wireguardConfigFile} > "$tmpdir/wg.conf"
+            text = ''
+              echo "$PWD"
+              # Set up the wireguard interface
+              tmpdir=$(mktemp -d) 
+              cat ${cfg.wireguardConfigFile} > "$tmpdir/wg.conf"
             
-            ip link add wg0 type wireguard
-            ip link set wg0 netns wg
-            ip -n wg address add "$(cat ${cfg.wireguardAddressPath})" dev wg0
-            ip netns exec wg wg setconf wg0 <(wg-quick strip "$tmpdir/wg.conf")
-            ip -n wg link set wg0 up
-            ip -n wg route add default dev wg0
+              ip link add wg0 type wireguard
+              ip link set wg0 netns wg
+              ip -n wg address add "$(cat ${cfg.wireguardAddressPath})" dev wg0
+              ip netns exec wg wg setconf wg0 <(wg-quick strip "$tmpdir/wg.conf")
+              ip -n wg link set wg0 up
+              ip -n wg route add default dev wg0
 
-            # Start the loopback interface
-            ip -n wg link set dev lo up
+              # Start the loopback interface
+              ip -n wg link set dev lo up
 
-            # Create a bridge
-            ip link add v-net-0 type bridge
-            ip addr add ${cfg.bridgeAddress}/24 dev v-net-0
-            ip link set dev v-net-0 up
+              # Create a bridge
+              ip link add v-net-0 type bridge
+              ip addr add ${cfg.bridgeAddress}/24 dev v-net-0
+              ip link set dev v-net-0 up
 
-            # Set up veth pair to link namespace with host network
-            ip link add veth-vpn-br type veth peer name veth-vpn netns wg
-            ip link set veth-vpn-br master v-net-0
+              # Set up veth pair to link namespace with host network
+              ip link add veth-vpn-br type veth peer name veth-vpn netns wg
+              ip link set veth-vpn-br master v-net-0
 
-            ip -n wg addr add ${cfg.namespaceAddress}/24 dev veth-vpn
-            ip -n wg link set dev veth-vpn up
+              ip -n wg addr add ${cfg.namespaceAddress}/24 dev veth-vpn
+              ip -n wg link set dev veth-vpn up
 
-            mkdir -p /etc/netns/wg/ && echo "nameserver ${cfg.dnsServer}" > /etc/netns/wg/resolv.conf
+              mkdir -p /etc/netns/wg/ && echo "nameserver ${cfg.dnsServer}" > /etc/netns/wg/resolv.conf
 
-            #iptables -A INPUT -p tcp --dport 33915 -j ACCEPT
-            #iptables -A INPUT -p udp --dport 33915 -j ACCEPT
-            #iptables -A INPUT -dport 33915 -j ACCEPT
-            #iptables -I INPUT -j LOG 
+              #iptables -A INPUT -p tcp --dport 33915 -j ACCEPT
+              #iptables -A INPUT -p udp --dport 33915 -j ACCEPT
+              #iptables -A INPUT -dport 33915 -j ACCEPT
+              #iptables -I INPUT -j LOG 
 
-            #ip netns exec wg iptables -I INPUT -p tcp --dport 33915 -j ACCEPT
+              #ip netns exec wg iptables -I INPUT -p tcp --dport 33915 -j ACCEPT
+            ''
+
+            # Add routes to make the namespace accessible
+            + strings.concatMapStrings (x: 
+              "ip -n wg route add ${x} via ${cfg.bridgeAddress}" + "\n"
+            ) cfg.accessibleFrom
+
+            # Add prerouting rules
+            + strings.concatMapStrings (x: 
+              "ip netns exec wg iptables -t nat -A PREROUTING -p tcp --dport ${builtins.toString x.From} -j DNAT --to-destination ${cfg.namespaceAddress}:${builtins.toString x.To}" +
+              "\n"
+            ) cfg.portMappings
+
+            # Allow VPN TCP ports
+            + strings.concatMapStrings (x: 
+              "ip netns exec wg iptables -I INPUT -p tcp --dport ${builtins.toString x} -j ACCEPT" +
+              "\n"
+            ) cfg.openTcpPorts
+
+            # Allow VPN UDP ports
+            + strings.concatMapStrings (x: 
+              "iptables -I INPUT -p udp --dport ${builtins.toString x} -j ACCEPT" +
+              "\n"
+            ) cfg.openUdpPorts;
+          };
+        in {
+          Type = "oneshot";
+          RemainAfterExit = true;
+          ExecStart = "${vpn-namespace}/bin/vpn-namespace";
+
+          ExecStopPost = with pkgs; writers.writeBash "wg-down" (''
+            ${iproute2}/bin/ip -n wg route del default dev wg0
+            ${iproute2}/bin/ip -n wg link del wg0
+            ${iproute2}/bin/ip -n wg link del veth-vpn
+            ${iproute2}/bin/ip link del v-net-0
           ''
 
-          # Add routes to make the namespace accessible
-          + strings.concatMapStrings (x: 
-            "ip -n wg route add ${x} via ${cfg.bridgeAddress}" + "\n"
-          ) cfg.accessibleFrom
-
-          # Add prerouting rules
-          + strings.concatMapStrings (x: 
-            "ip netns exec wg iptables -t nat -A PREROUTING -p tcp --dport ${builtins.toString x.From} -j DNAT --to-destination ${cfg.namespaceAddress}:${builtins.toString x.To}" +
-            "\n"
-          ) cfg.portMappings
-
-          # Allow VPN TCP ports
-          + strings.concatMapStrings (x: 
-            "ip netns exec wg iptables -I INPUT -p tcp --dport ${builtins.toString x} -j ACCEPT" +
-            "\n"
-          ) cfg.openTcpPorts
-
-          # Allow VPN UDP ports
-          + strings.concatMapStrings (x: 
-            "iptables -I INPUT -p udp --dport ${builtins.toString x} -j ACCEPT" +
-            "\n"
-          ) cfg.openUdpPorts;
+          # Delete prerouting rules
+          + strings.concatMapStrings (x: "${iptables}/bin/iptables -t nat -D PREROUTING -p tcp --dport ${builtins.toString x.From} -j DNAT --to-destination ${cfg.namespaceAddress}:${builtins.toString x.To}" + "\n") cfg.portMappings);
         };
-      in {
-        Type = "oneshot";
-        RemainAfterExit = true;
-        ExecStart = "${vpn-namespace}/bin/vpn-namespace";
+      };
+    };
 
-        ExecStopPost = with pkgs; writers.writeBash "wg-down" (''
-          ${iproute2}/bin/ip -n wg route del default dev wg0
-          ${iproute2}/bin/ip -n wg link del wg0
-          ${iproute2}/bin/ip -n wg link del veth-vpn
-          ${iproute2}/bin/ip link del v-net-0
-        ''
+    systemd.services.vpn-test-service = mkIf (cfg.vpnTestService.enable && cfg.enable) {
+      script = let
+        vpn-test = pkgs.writeShellApplication {
+          name = "vpn-test";
 
-        # Delete prerouting rules
-        + strings.concatMapStrings (x: "${iptables}/bin/iptables -t nat -D PREROUTING -p tcp --dport ${builtins.toString x.From} -j DNAT --to-destination ${cfg.namespaceAddress}:${builtins.toString x.To}" + "\n") cfg.portMappings);
+          runtimeInputs = with pkgs; [ unixtools.ping coreutils curl bash libressl netcat-gnu openresolv ];
+
+          text = ''
+            cd "$(mktemp -d)"
+
+            # Print resolv.conf
+            echo "/etc/resolv.conf contains:"
+            cat /etc/resolv.conf
+            echo ""
+
+            # Query resolvconf
+            echo "resolvconf output:"
+            resolvconf -l
+            echo ""
+
+            # Get ip
+            curl -s ipinfo.io
+
+            # DNS leak test
+            curl -s https://raw.githubusercontent.com/macvk/dnsleaktest/b03ab54d574adbe322ca48cbcb0523be720ad38d/dnsleaktest.sh -o dnsleaktest.sh
+            chmod +x dnsleaktest.sh
+            ./dnsleaktest.sh
+
+            echo "starting netcat on port ${builtins.toString cfg.vpnTestService.port}:"
+            nc -vnlp ${builtins.toString cfg.vpnTestService.port}
+          '';
+        };
+      in "${vpn-test}/bin/vpn-test";
+
+      bindsTo = [ "netns@wg.service" ];
+      requires = [ "network-online.target" ];
+      after = [ "wg.service" ];
+      serviceConfig = {
+        #User = "media";
+        #Group = "media";
+        NetworkNamespacePath = "/var/run/netns/wg";
+        BindReadOnlyPaths="/etc/netns/wg/resolv.conf:/etc/resolv.conf:norbind";
       };
     };
   };
