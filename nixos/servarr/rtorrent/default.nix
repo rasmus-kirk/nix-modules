@@ -332,12 +332,12 @@ in {
     };
 
     networking.firewall.allowedTCPPorts = [ 
-      cfg.peerTrafficPort # rTorrent
+      cfg.port # rTorrent
       cfg.dhtPort # rTorrent DHT
     ];
 
     networking.firewall.allowedUDPPorts = [ 
-      cfg.peerTrafficPort # rTorrent
+      cfg.port # rTorrent
       cfg.dhtPort # rTorrent DHT
     ];
   };

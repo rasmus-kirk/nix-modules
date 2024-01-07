@@ -254,7 +254,7 @@ in {
         vpn-test = pkgs.writeShellApplication {
           name = "vpn-test";
 
-          runtimeInputs = with pkgs; [ unixtools.ping coreutils curl bash libressl netcat-gnu openresolv ];
+          runtimeInputs = with pkgs; [ unixtools.ping coreutils curl bash libressl netcat-gnu openresolv dig];
 
           text = ''
             cd "$(mktemp -d)"
@@ -271,6 +271,12 @@ in {
 
             # Get ip
             curl -s ipinfo.io
+
+            echo -ne "Making DNS requests... "
+            DATA=$(for i in {1..10}; do echo $(dig $RANDOM.go.dnscheck.tools TXT +short | grep -e remoteIP -e remoteNetwork | sort); done)
+            echo -ne "done\n\n"
+            echo -ne "Summary of your DNS resolvers:\n\n"
+            echo "$DATA" | sort | uniq -c | sort -nr | sed -e 's/"//g' -e 's/remoteIP:/|/' -e 's/remoteNetwork:/|/' | column -t -s '|'
 
             # DNS leak test
             curl -s https://raw.githubusercontent.com/macvk/dnsleaktest/b03ab54d574adbe322ca48cbcb0523be720ad38d/dnsleaktest.sh -o dnsleaktest.sh
