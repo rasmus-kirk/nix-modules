@@ -6,6 +6,7 @@
 }:
 with lib; let
   cfg = config.kirk.servarr.rtorrent;
+  servarr = config.kirk.servarr;
   defaultConfig = ''
     #############################################################################
     # A minimal rTorrent configuration that provides the basic features
@@ -34,14 +35,14 @@ with lib; let
 
 
     ## Listening port for incoming peer traffic (fixed; you can also randomize it)
-    network.port_range.set = ${cfg.port}-${cfg.port}
+    network.port_range.set = ${builtins.toString cfg.port}-${builtins.toString cfg.port}
     network.port_random.set = no
 
 
     ## Tracker-less torrent and UDP tracker support
-  '' ++ (if cfg.usePublicTrackers then ''
+  '' + (if cfg.usePublicTrackers then ''
     dht.mode.set = auto
-    dht.port.set = ${cfg.dhtPort}
+    dht.port.set = ${builtins.toString cfg.dhtPort}
     protocol.pex.set = 1
     trackers.use_udp.set = 1
 
@@ -55,7 +56,7 @@ with lib; let
     dht.mode.set = disable
     protocol.pex.set = no
     trackers.use_udp.set = no
-  '') ++ ''
+  '') + ''
     ## Peer settings
     throttle.max_uploads.set = 100
     throttle.max_uploads.global.set = 250
@@ -183,8 +184,16 @@ in {
 
     stateDir = mkOption {
       type = types.path;
-      default = "${cfg.stateDir}/servarr/rtorrent";
+      default = "${servarr.stateDir}/servarr/rtorrent";
       description = lib.mdDoc "The state directory for rtorrent";
+    };
+
+    downloadDir = mkOption {
+      type = types.path;
+      default = "${servarr.mediaDir}/torrents";
+      description = lib.mdDoc ''
+        The directory for rtorrent to download to.
+      '';
     };
 
     useVpn = mkOption {
@@ -216,8 +225,8 @@ in {
     };
 
     extraConfig = mkOption {
-      type = types.attrs;
-      default = {};
+      type = types.str;
+      default = "";
       description = "Extra config for the service.";
     };
 
@@ -244,7 +253,7 @@ in {
 
       stateDir = mkOption {
         type = types.path;
-        default = "${config.kirk.servarr.stateDir}/flood";
+        default = "${servarr.stateDir}/servarr/flood";
         description = lib.mdDoc ''
           The directory for flood to keep its state in.
         '';
@@ -281,11 +290,11 @@ in {
   config = mkIf cfg.enable {
     services.rtorrent = {
       enable = cfg.enable;
-      configText = mkForce (defaultConfig ++ cfg.config);
-      dataDir = "${cfg.stateDir}/servarr/rtorrent";
-      downloadDir = "${cfg.mediaDir}/torrents";
+      configText = mkForce (defaultConfig + cfg.extraConfig);
+      #dataDir = "${servarr.stateDir}/servarr/rtorrent";
+      #downloadDir = "${servarr.mediaDir}/torrents";
+      #port = cfg.port;
       openFirewall = true;
-      port = cfg.port;
     };
 
     services.flood = {

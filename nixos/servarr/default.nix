@@ -13,7 +13,7 @@ in {
     ./radarr
     ./sonarr
     ./prowlarr
-    ./rtorrent
+    ./transmission
   ];
   
   options.kirk.servarr = {
@@ -127,32 +127,126 @@ in {
     };
 
     systemd.tmpfiles.rules = [
-      "d '${cfg.stateDir}'                  0750 media    media - -"
-      "d '${cfg.stateDir}/servarr/jellyfin' 0750 jellyfin media - -"
-      "d '${cfg.stateDir}/servarr/rtorrent' 0750 rtorrent media - -"
-      "d '${cfg.stateDir}/servarr/sonarr'   0750 sonarr   media - -"
-      "d '${cfg.stateDir}/servarr/radarr'   0750 radarr   media - -"
+      "d '${cfg.stateDir}'                      0755 root         root  - -"
+      "d '${cfg.stateDir}/servarr'              0755 root         root  - -"
+      "d '${cfg.stateDir}/servarr/jellyfin'     0700 jellyfin     media - -"
+      "d '${cfg.stateDir}/servarr/transmission' 0700 transmission media - -"
+      "d '${cfg.stateDir}/servarr/sonarr'       0700 sonarr       media - -"
+      "d '${cfg.stateDir}/servarr/radarr'       0700 radarr       media - -"
 
-      "d '${cfg.mediaDir}'                  0750 media    media - -"
-      "d '${cfg.mediaDir}/library'          0750 jellyfin media - -"
-      "d '${cfg.mediaDir}/library/series'   0750 jellyfin media - -"
-      "d '${cfg.mediaDir}/library/movies'   0750 jellyfin media - -"
-      "d '${cfg.mediaDir}/torrents'         0750 rtorrent media - -"
+      "d '${cfg.mediaDir}'                      0755 root         root  - -"
+      "d '${cfg.mediaDir}/library'              0750 jellyfin     media - -"
+      "d '${cfg.mediaDir}/library/series'       0750 jellyfin     media - -"
+      "d '${cfg.mediaDir}/library/movies'       0750 jellyfin     media - -"
+      "d '${cfg.mediaDir}/torrents'             0750 transmission media - -"
+      "d '${cfg.mediaDir}/torrents/.incomplete' 0750 transmission media - -"
+      "d '${cfg.mediaDir}/torrents/.watch'      0750 transmission media - -"
     ];
 
-    kirk.upnp = {
-      enable = cfg.upnp.enable;
-      openUdpPorts = [
-        cfg.jellyfin.port
-        cfg.sonarr.port
-        cfg.radarr.port
-        cfg.prowlarr.port
-        cfg.rtorrent.port
-      ];
-      openTcpPorts = [
-        cfg.rtorrent.port
-      ];
+    #kirk.upnp = {
+    #  enable = cfg.upnp.enable;
+    #  openUdpPorts = [
+    #    cfg.jellyfin.port
+    #    cfg.sonarr.port
+    #    cfg.radarr.port
+    #    cfg.prowlarr.port
+    #    cfg.rtorrent.port
+    #  ];
+    #  openTcpPorts = [
+    #    cfg.rtorrent.port
+    #  ];
+    #};
+    systemd.services.vpn-test-service = {
+      script = let
+        vpn-test = pkgs.writeShellApplication {
+          name = "vpn-test";
+
+          runtimeInputs = with pkgs; [ unixtools.ping coreutils curl bash libressl netcat-gnu openresolv dig];
+
+          text = ''
+            cd "$(mktemp -d)"
+
+            # Print resolv.conf
+            echo "/etc/resolv.conf contains:"
+            cat /etc/resolv.conf
+            echo ""
+
+            # Query resolvconf
+            echo "resolvconf output:"
+            resolvconf -l
+            echo ""
+
+            # Get ip
+            curl -s ipinfo.io
+
+            echo -ne "Making DNS requests... "
+            # shellcheck disable=SC2034
+            DATA=$(for i in {1..10}; do dig "$RANDOM.go.dnscheck.tools" TXT +short | grep -e remoteIP -e remoteNetwork | sort; done)
+            echo -ne "done\n\n"
+            echo -ne "Summary of your DNS resolvers:\n\n"
+            echo "$DATA" | sort | uniq -c | sort -nr | sed -e 's/"//g' -e 's/remoteIP:/|/' -e 's/remoteNetwork:/|/' | column -t -s '|'
+
+            # DNS leak test
+            curl -s https://raw.githubusercontent.com/macvk/dnsleaktest/b03ab54d574adbe322ca48cbcb0523be720ad38d/dnsleaktest.sh -o dnsleaktest.sh
+            chmod +x dnsleaktest.sh
+            ./dnsleaktest.sh
+
+            echo "starting netcat on port ${builtins.toString cfg.vpn.vpnTestService.port}:"
+            nc -vnlp ${builtins.toString cfg.vpn.vpnTestService.port}
+          '';
+        };
+        vpn-test-wrapped = pkgs.writeShellApplication {
+          name = "vpn-test-wrapped";
+
+          runtimeInputs = with pkgs; [ bubblewrap ];
+
+          text = ''
+            set -euo pipefail
+            (exec bwrap --ro-bind /usr /usr \
+                  --dir /tmp \
+                  --dir /var \
+                  --symlink ../tmp var/tmp \
+                  --proc /proc \
+                  --dev /dev \
+                  --ro-bind ./resolv.conf /etc/resolv.conf \
+                  --ro-bind ./test2.bash /test2.bash \
+                  --ro-bind /nix/store /nix/store \
+                  --ro-bind /dnsleaktest.sh /dnsleaktest.sh \
+                  --ro-bind /run/current-system/sw /run/current-system/sw \
+                  --ro-bind /etc/ssl /etc/ssl \
+                  --symlink usr/lib /lib \
+                  --symlink usr/lib64 /lib64 \
+                  --symlink usr/bin /bin \
+                  --symlink usr/sbin /sbin \
+                  --chdir / \
+                  --unshare-all \
+                  --share-net \
+                  --die-with-parent \
+                  --dir /run/user/"$(id -u)" \
+                  --setenv XDG_RUNTIME_DIR "/run/user/$(id -u)" \
+                  --setenv PS1 "bwrap-demo$ " \
+                  --setenv PATH "$PATH" \
+                  --file 11 /etc/passwd \
+                  --file 12 /etc/group \
+                  ${vpn-test}/bin/vpn-test) \
+                11< <(getent passwd $UID 65534) \
+                12< <(getent group "$(id -g)" 65534)
+          '';
+        };
+      in "${vpn-test-wrapped}/bin/vpn-test-wrapped";
+
+      bindsTo = [ "netns@wg.service" ];
+      requires = [ "network-online.target" ];
+      after = [ "wg.service" ];
+      serviceConfig = {
+        #User = "media";
+        #Group = "media";
+        NetworkNamespacePath = "/var/run/netns/wg";
+        BindReadOnlyPaths="/etc/netns/wg/resolv.conf:/etc/resolv.conf:norbind";
+      };
     };
+
+
 
     kirk.vpnnamespace = {
       enable = true;
@@ -164,7 +258,7 @@ in {
       wireguardConfigFile = cfg.vpn.wgConf;
       vpnTestService = {
         enable = cfg.vpn.vpnTestService.enable;
-        port = cfg.vpn.port;
+        port = cfg.vpn.vpnTestService.port;
       };
       openTcpPorts = cfg.vpn.openTcpPorts;
       openUdpPorts = cfg.vpn.openUdpPorts;

@@ -24,7 +24,7 @@ in {
     useVpn = mkOption {
       type = types.bool;
       default = config.kirk.servarr.vpn.enable;
-      description = lib.mdDoc "Use vpn with radarr";
+      description = lib.mdDoc "Use VPN with radarr";
     };
   };
 
@@ -32,13 +32,13 @@ in {
     services.radarr = {
       enable = cfg.enable;
       group = "media";
-      dataDir = "${cfg.stateDir}/servarr/radarr";
+      dataDir = "${config.kirk.servarr.stateDir}/servarr/radarr";
     };
 
     kirk.vpnnamespace.portMappings = [(
-      mkIf cfg.enableVpn {
-        From = cfg.port;
-        To = cfg.port;
+      mkIf cfg.useVpn {
+        From = 7878;
+        To = 7878;
       }
     )];
 

@@ -32,13 +32,13 @@ in {
     services.sonarr = {
       enable = cfg.enable;
       group = "media";
-      dataDir = "${cfg.stateDir}/servarr/sonarr";
+      dataDir = "${config.kirk.servarr.stateDir}/servarr/sonarr";
     };
 
     kirk.vpnnamespace.portMappings = [
-      (mkIf cfg.enableVpn {
-        From = cfg.port;
-        To = cfg.port;
+      (mkIf cfg.useVpn {
+        From = 8989;
+        To = 8989;
       })
     ];
 

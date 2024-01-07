@@ -247,56 +247,57 @@ in {
           + strings.concatMapStrings (x: "${iptables}/bin/iptables -t nat -D PREROUTING -p tcp --dport ${builtins.toString x.From} -j DNAT --to-destination ${cfg.namespaceAddress}:${builtins.toString x.To}" + "\n") cfg.portMappings);
         };
       };
-    };
 
-    systemd.services.vpn-test-service = mkIf (cfg.vpnTestService.enable && cfg.enable) {
-      script = let
-        vpn-test = pkgs.writeShellApplication {
-          name = "vpn-test";
+      vpn-test-service = {
+        script = let
+          vpn-test = pkgs.writeShellApplication {
+            name = "vpn-test";
 
-          runtimeInputs = with pkgs; [ unixtools.ping coreutils curl bash libressl netcat-gnu openresolv dig];
+            runtimeInputs = with pkgs; [ util-linux unixtools.ping coreutils curl bash libressl netcat-gnu openresolv dig ];
 
-          text = ''
-            cd "$(mktemp -d)"
+            text = ''
+              cd "$(mktemp -d)"
 
-            # Print resolv.conf
-            echo "/etc/resolv.conf contains:"
-            cat /etc/resolv.conf
-            echo ""
+              # Print resolv.conf
+              echo "/etc/resolv.conf contains:"
+              cat /etc/resolv.conf
+              echo ""
 
-            # Query resolvconf
-            echo "resolvconf output:"
-            resolvconf -l
-            echo ""
+              # Query resolvconf
+              echo "resolvconf output:"
+              resolvconf -l
+              echo ""
 
-            # Get ip
-            curl -s ipinfo.io
+              # Get ip
+              curl -s ipinfo.io
 
-            echo -ne "Making DNS requests... "
-            DATA=$(for i in {1..10}; do echo $(dig $RANDOM.go.dnscheck.tools TXT +short | grep -e remoteIP -e remoteNetwork | sort); done)
-            echo -ne "done\n\n"
-            echo -ne "Summary of your DNS resolvers:\n\n"
-            echo "$DATA" | sort | uniq -c | sort -nr | sed -e 's/"//g' -e 's/remoteIP:/|/' -e 's/remoteNetwork:/|/' | column -t -s '|'
+              echo -ne "Making DNS requests... "
+              # shellcheck disable=SC2034
+              DATA=$(for i in {1..10}; do dig "$RANDOM.go.dnscheck.tools" TXT +short | grep -e remoteIP -e remoteNetwork | sort; done)
+              echo -ne "done\n\n"
+              echo -ne "Summary of your DNS resolvers:\n\n"
+              echo "$DATA" | sort | uniq -c | sort -nr | sed -e 's/"//g' -e 's/remoteIP:/|/' -e 's/remoteNetwork:/|/' | column -t -s '|'
 
-            # DNS leak test
-            curl -s https://raw.githubusercontent.com/macvk/dnsleaktest/b03ab54d574adbe322ca48cbcb0523be720ad38d/dnsleaktest.sh -o dnsleaktest.sh
-            chmod +x dnsleaktest.sh
-            ./dnsleaktest.sh
+              # DNS leak test
+              curl -s https://raw.githubusercontent.com/macvk/dnsleaktest/b03ab54d574adbe322ca48cbcb0523be720ad38d/dnsleaktest.sh -o dnsleaktest.sh
+              chmod +x dnsleaktest.sh
+              ./dnsleaktest.sh
 
-            echo "starting netcat on port ${builtins.toString cfg.vpnTestService.port}:"
-            nc -vnlp ${builtins.toString cfg.vpnTestService.port}
-          '';
+              echo "starting netcat on port ${builtins.toString cfg.vpnTestService.port}:"
+              nc -vnlp ${builtins.toString cfg.vpnTestService.port}
+            '';
+          };
+        in "${vpn-test}/bin/vpn-test";
+
+        bindsTo = [ "netns@wg.service" ];
+        requires = [ "network-online.target" ];
+        after = [ "wg.service" ];
+        serviceConfig = {
+          #User = "media";
+          #Group = "media";
+          NetworkNamespacePath = "/var/run/netns/wg";
+          BindReadOnlyPaths="/etc/netns/wg/resolv.conf:/etc/resolv.conf:norbind";
         };
-      in "${vpn-test}/bin/vpn-test";
-
-      bindsTo = [ "netns@wg.service" ];
-      requires = [ "network-online.target" ];
-      after = [ "wg.service" ];
-      serviceConfig = {
-        #User = "media";
-        #Group = "media";
-        NetworkNamespacePath = "/var/run/netns/wg";
-        BindReadOnlyPaths="/etc/netns/wg/resolv.conf:/etc/resolv.conf:norbind";
       };
     };
   };

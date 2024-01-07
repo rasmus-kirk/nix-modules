@@ -12,13 +12,13 @@ in {
     enable = mkOption {
       type = types.bool;
       default = true;
-      description = lib.mdDoc "enable prowlarr";
+      description = lib.mdDoc "Enable prowlarr";
     };
 
     stateDir = mkOption {
       type = types.path;
-      default = "${cfg.stateDir}/servarr/rtorrent";
-      description = lib.mdDoc "The state directory for jellyfin";
+      default = "${cfg.stateDir}/servarr/prowlarr";
+      description = lib.mdDoc "The state directory for prowlarr";
     };
 
     useVpn = mkOption {
@@ -34,6 +34,13 @@ in {
       openFirewall = true;
     };
 
+    kirk.vpnnamespace.portMappings = [(
+      mkIf cfg.useVpn {
+        From = 9696;
+        To = 9696;
+      }
+    )];
+
     systemd.services.prowlarr = mkIf cfg.useVpn {
       bindsTo = [ "netns@wg.service" ];
       requires = [ "network-online.target" ];
@@ -43,12 +50,5 @@ in {
         BindReadOnlyPaths="/etc/netns/wg/resolv.conf:/etc/resolv.conf:norbind";
       };
     };
-
-    kirk.vpnnamespace.portMappings = [(
-      mkIf cfg.enableVpn {
-        From = cfg.port;
-        To = cfg.port;
-      }
-    )];
   };
 }
