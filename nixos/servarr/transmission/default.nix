@@ -23,10 +23,6 @@ with lib; let
   };
 
 in {
-  imports = [
-    ./flood-module
-  ];
-
   options.kirk.servarr.transmission = {
     enable = mkOption {
       type = types.bool;
@@ -128,16 +124,6 @@ in {
           #BindReadOnlyPaths="/etc/netns/wg/resolv.conf:/etc/resolv.conf:norbind";
         };
       };
-
-      flood = mkIf cfg.flood.useVpn {
-        bindsTo = [ "netns@wg.service" ];
-        requires = [ "network-online.target" ];
-        after = [ "wg.service" ];
-        serviceConfig = {
-          NetworkNamespacePath = "/var/run/netns/wg";
-          #BindReadOnlyPaths="/etc/netns/wg/resolv.conf:/etc/resolv.conf:norbind";
-        };
-      };
     };
 
     services.transmission = {
@@ -145,7 +131,7 @@ in {
       #home = cfg.stateDir;
       webHome = pkgs.flood-for-transmission;
       settings = {
-        downloadDir = "${servarr.mediaDir}/torrents";
+        download-dir = "${servarr.mediaDir}/torrents";
         incomplete-dir = "${servarr.mediaDir}/torrents/.incomplete";
         incomplete-dir-enabled = true;
         watch-dir = "${servarr.mediaDir}/torrents/.watch";
@@ -156,33 +142,57 @@ in {
         rpc-username = "transmission";
         rpc-host-whitelist-enabled = false;
       } // cfg.extraConfig;
-      openFirewall = false;
+      openFirewall = true;
     };
 
-    services.flood = {
-      enable = cfg.flood.enable;
-      port = cfg.flood.port;
-      group = config.services.transmission.group;
-      openFirewall = false;
-      auth.transmission = {
-        url = "http://"
-            + config.services.transmission.settings.rpc-bind-address
-            + ":"
-            + builtins.toString config.services.transmission.settings.rpc-port
-            + "/transmission/";
-        user = "transmission";
-        pass = "test-password";
-      };
-    };
+    #services.flood = {
+    #  enable = cfg.flood.enable;
+    #  port = cfg.flood.port;
+    #  group = config.services.transmission.group;
+    #  openFirewall = false;
+    #  auth.transmission = {
+    #    url = "http://"
+    #        + config.services.transmission.settings.rpc-bind-address
+    #        + ":"
+    #        + builtins.toString config.services.transmission.settings.rpc-port
+    #        + "/transmission/";
+    #    user = "transmission";
+    #    pass = "test-password";
+    #  };
+    #};
 
     networking.firewall.allowedTCPPorts = [ 
       cfg.port # rTorrent
       cfg.dhtPort # rTorrent DHT
+      9091
     ];
 
     networking.firewall.allowedUDPPorts = [ 
       cfg.port # rTorrent
       cfg.dhtPort # rTorrent DHT
+      9091
     ];
+
+    #services.nginx = mkIf (cfg.enable && cfg.useVpn) {
+    #  enable = true;
+
+    #  recommendedTlsSettings = true;
+    #  recommendedOptimisation = true;
+    #  recommendedGzipSettings = true;
+
+    #  virtualHosts."127.0.0.1" = {
+    #    listen = [
+    #      {
+    #        addr = "0.0.0.0";
+    #        port = 9091;
+    #      }
+    #    ];
+    #    locations."/" = {
+    #      recommendedProxySettings = true;
+    #      proxyWebsockets = true;
+    #      proxyPass = "http://192.168.15.1:9091/transmission/web";
+    #    };
+    #  };
+    #};
   };
 }
