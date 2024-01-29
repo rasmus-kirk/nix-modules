@@ -118,44 +118,61 @@ in {
   };
 
   config = mkIf cfg.enable {
-    users.groups.media = {};
-    users.users = {
+    users.groups = {
       media = {
+        gid = 992;
+      };
+      prowlarr = {};
+      transmission = {};
+      jellyfin = {};
+    };
+    users.users = {
+      jellyfin = {
+        isSystemUser = true;
+        uid = lib.mkForce 994;
+      };
+      sonarr = {
         isSystemUser = true;
         group = "media";
+        uid = lib.mkForce 991;
+      };
+      radarr = {
+        isSystemUser = true;
+        group = "media";
+        uid = lib.mkForce 275;
+      };
+      transmission = {
+        isSystemUser = true;
+        group = "transmission";
+        uid = lib.mkForce 990;
+      };
+      prowlarr = {
+        isSystemUser = true;
+        group = "prowlarr";
+        uid = lib.mkForce 989;
       };
     };
 
     systemd.tmpfiles.rules = [
       "d '${cfg.stateDir}'                      0755 root         root  - -"
       "d '${cfg.stateDir}/servarr'              0755 root         root  - -"
-      "d '${cfg.stateDir}/servarr/jellyfin'     0700 jellyfin     media - -"
-      "d '${cfg.stateDir}/servarr/transmission' 0700 transmission media - -"
-      "d '${cfg.stateDir}/servarr/sonarr'       0700 sonarr       media - -"
-      "d '${cfg.stateDir}/servarr/radarr'       0700 radarr       media - -"
+      "d '${cfg.stateDir}/servarr/jellyfin'     0700 jellyfin     root  - -"
+      "d '${cfg.stateDir}/servarr/transmission' 0700 transmission root  - -"
+      "d '${cfg.stateDir}/servarr/sonarr'       0700 sonarr       root  - -"
+      "d '${cfg.stateDir}/servarr/radarr'       0700 radarr       root  - -"
+      "d '${cfg.stateDir}/servarr/prowlarr'     0700 prowlarr     root  - -"
 
-      "d '${cfg.mediaDir}'                      0755 root         root  - -"
-      "d '${cfg.mediaDir}/library'              0750 jellyfin     media - -"
-      "d '${cfg.mediaDir}/library/series'       0750 jellyfin     media - -"
-      "d '${cfg.mediaDir}/library/movies'       0750 jellyfin     media - -"
+      "d '${cfg.mediaDir}'                      0775 root         media  - -"
+      "d '${cfg.mediaDir}/library'              0770 jellyfin     media - -"
+      "d '${cfg.mediaDir}/library/series'       0770 jellyfin     media - -"
+      "d '${cfg.mediaDir}/library/movies'       0770 jellyfin     media - -"
       "d '${cfg.mediaDir}/torrents'             0750 transmission media - -"
       "d '${cfg.mediaDir}/torrents/.incomplete' 0750 transmission media - -"
       "d '${cfg.mediaDir}/torrents/.watch'      0750 transmission media - -"
     ];
 
-    #kirk.upnp = {
-    #  enable = cfg.upnp.enable;
-    #  openUdpPorts = [
-    #    cfg.jellyfin.port
-    #    cfg.sonarr.port
-    #    cfg.radarr.port
-    #    cfg.prowlarr.port
-    #    cfg.rtorrent.port
-    #  ];
-    #  openTcpPorts = [
-    #    cfg.rtorrent.port
-    #  ];
-    #};
+    kirk.upnp.enable = cfg.upnp.enable;
+
     systemd.services.vpn-test-service = {
       script = let
         vpn-test = pkgs.writeShellApplication {
@@ -246,12 +263,11 @@ in {
       };
     };
 
-
-
     kirk.vpnnamespace = {
       enable = true;
       accessibleFrom = [
-        "192.168.0.0/24"
+        "192.168.1.0/24"
+        "127.0.0.1"
       ];
       dnsServer = cfg.vpn.dnsServer;
       wireguardAddressPath = cfg.vpn.wgAddress;

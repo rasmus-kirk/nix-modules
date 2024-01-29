@@ -109,15 +109,16 @@ in {
     };
 
     home.packages = with pkgs; [
-      btop
-      silver-searcher
-      jq
-      tealdeer
-      eza
-      fd
-      duf
-      du-dust
-      trash-cli
+      rig # Random Identities for Privacy
+      btop # Task Manager
+      silver-searcher # Search in Files
+      jq # JSON Parser
+      tealdeer # TLDR for CLI Commands
+      eza # Pretty ls
+      fd # Find Files
+      duf # Pretty df
+      du-dust # Pretty du
+      trash-cli # Trash Files in Terminal
       bat-extras.batman
     ];
   };

@@ -171,7 +171,6 @@ in {
             runtimeInputs = with pkgs; [ iproute2 wireguard-tools iptables ];
 
             text = ''
-              echo "$PWD"
               # Set up the wireguard interface
               tmpdir=$(mktemp -d) 
               cat ${cfg.wireguardConfigFile} > "$tmpdir/wg.conf"
@@ -199,13 +198,6 @@ in {
               ip -n wg link set dev veth-vpn up
 
               mkdir -p /etc/netns/wg/ && echo "nameserver ${cfg.dnsServer}" > /etc/netns/wg/resolv.conf
-
-              #iptables -A INPUT -p tcp --dport 33915 -j ACCEPT
-              #iptables -A INPUT -p udp --dport 33915 -j ACCEPT
-              #iptables -A INPUT -dport 33915 -j ACCEPT
-              #iptables -I INPUT -j LOG 
-
-              #ip netns exec wg iptables -I INPUT -p tcp --dport 33915 -j ACCEPT
             ''
 
             # Add routes to make the namespace accessible
@@ -215,7 +207,7 @@ in {
 
             # Add prerouting rules
             + strings.concatMapStrings (x: 
-              "ip netns exec wg iptables -t nat -A PREROUTING -p tcp --dport ${builtins.toString x.From} -j DNAT --to-destination ${cfg.namespaceAddress}:${builtins.toString x.To}" +
+              "iptables -t nat -A PREROUTING -p tcp --dport ${builtins.toString x.From} -j DNAT --to-destination ${cfg.namespaceAddress}:${builtins.toString x.To}" +
               "\n"
             ) cfg.portMappings
 
@@ -227,7 +219,7 @@ in {
 
             # Allow VPN UDP ports
             + strings.concatMapStrings (x: 
-              "iptables -I INPUT -p udp --dport ${builtins.toString x} -j ACCEPT" +
+              "ip netns exec wg iptables -I INPUT -p udp --dport ${builtins.toString x} -j ACCEPT" +
               "\n"
             ) cfg.openUdpPorts;
           };

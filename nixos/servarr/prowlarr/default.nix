@@ -6,6 +6,9 @@
   ...
 }:
 with lib; let
+  defaultPort = 9696;
+  dnsServer = config.kirk.vpnnamespace.dnsServer;
+  servarr = config.kirk.servarr;
   cfg = config.kirk.servarr.prowlarr;
 in {
   options.kirk.servarr.prowlarr = {
@@ -17,8 +20,8 @@ in {
 
     stateDir = mkOption {
       type = types.path;
-      default = "${cfg.stateDir}/servarr/prowlarr";
-      description = lib.mdDoc "The state directory for prowlarr";
+      default = "${servarr.stateDir}/servarr/prowlarr";
+      description = lib.mdDoc "The state directory for prowlarr.";
     };
 
     useVpn = mkOption {
@@ -29,25 +32,73 @@ in {
   };
 
   config = mkIf cfg.enable {
-    services.prowlarr = {
-      enable = cfg.enable;
+    services.prowlarr = mkIf (!cfg.useVpn) {
+      enable = true;
       openFirewall = true;
     };
-
+  
     kirk.vpnnamespace.portMappings = [(
       mkIf cfg.useVpn {
-        From = 9696;
-        To = 9696;
+        From = defaultPort;
+        To = defaultPort;
       }
     )];
 
-    systemd.services.prowlarr = mkIf cfg.useVpn {
-      bindsTo = [ "netns@wg.service" ];
-      requires = [ "network-online.target" ];
-      after = [ "wg.service" ];
-      serviceConfig = {
-        NetworkNamespacePath = "/var/run/netns/wg";
-        BindReadOnlyPaths="/etc/netns/wg/resolv.conf:/etc/resolv.conf:norbind";
+    containers.prowlarr = mkIf cfg.useVpn {
+      autoStart = true;
+      ephemeral = true;
+      extraFlags = if cfg.useVpn then 
+        [ "--network-namespace-path=/var/run/netns/wg" ]
+      else [];
+
+      bindMounts = {
+        "/var/lib/prowlarr" = {
+          hostPath = cfg.stateDir;
+          isReadOnly = false;
+        };
+      };
+
+      config = {
+        # Use systemd-resolved inside the container
+        # Workaround for bug https://github.com/NixOS/nixpkgs/issues/162686
+        networking.useHostResolvConf = lib.mkForce false;
+        services.resolved.enable = true;
+        networking.nameservers = [ dnsServer ];
+
+        users.groups.prowlarr = {};
+        users.users.prowlarr = {
+          isSystemUser = true;
+          group = "prowlarr";
+        };
+
+        services.prowlarr = {
+          enable = true;
+          openFirewall = true;
+        };
+
+        system.stateVersion = "23.11";
+      };
+    };
+
+    services.nginx = mkIf cfg.useVpn {
+      enable = true;
+
+      recommendedTlsSettings = true;
+      recommendedOptimisation = true;
+      recommendedGzipSettings = true;
+
+      virtualHosts."127.0.0.1:${builtins.toString defaultPort}" = {
+        listen = [
+          {
+            addr = "0.0.0.0";
+            port = defaultPort;
+          }
+        ];
+        locations."/" = {
+          recommendedProxySettings = true;
+          proxyWebsockets = true;
+          proxyPass = "http://192.168.15.1:${builtins.toString defaultPort}";
+        };
       };
     };
   };

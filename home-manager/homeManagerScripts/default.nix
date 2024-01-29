@@ -24,7 +24,7 @@ with lib; let
   hm-update = pkgs.writeShellApplication {
     name = "hm-update";
     text = ''
-      nix flake update --flake ${configDir}
+      nix flake update ${configDir}
     '';
   };
 

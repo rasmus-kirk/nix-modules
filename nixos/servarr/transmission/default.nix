@@ -8,20 +8,7 @@
 with lib; let
   cfg = config.kirk.servarr.transmission;
   servarr = config.kirk.servarr;
-  write-secrets = pkgs.writeShellApplication {
-    name = "write-secrets";
-
-    runtimeInputs = with pkgs; [ util-linux unixtools.ping coreutils curl jq ];
-
-    text = ''
-      mkdir -pm 0770 /var/lib/secrets/transmission
-      cd /var/lib/secrets/transmission
-      touch config.json
-      chmod 0770 config.json
-      echo '{ "rpc-password": "test-password" }' > config.json
-    '';
-  };
-
+  dnsServer = config.kirk.vpnnamespace.dnsServer;
 in {
   options.kirk.servarr.transmission = {
     enable = mkOption {
@@ -50,7 +37,13 @@ in {
       description = lib.mdDoc "Run transmission through VPN";
     };
 
-    port = mkOption {
+    useFlood = mkOption {
+      type = types.bool;
+      default = true;
+      description = lib.mdDoc "Use the flood UI";
+    };
+
+    peerPort = mkOption {
       type = types.port;
       default = 50000;
       description = "transmission peer traffic port.";
@@ -62,137 +55,163 @@ in {
       description = "transmission dht port.";
     };
 
+    uiPort = mkOption {
+      type = types.port;
+      default = 9091;
+      description = "transmission web-UI port.";
+    };
+
     extraConfig = mkOption {
       type = types.attrs;
       default = {};
       description = "Extra config for the service.";
     };
-
-    flood = {
-      enable = mkOption {
-        type = types.bool;
-        default = cfg.enable;
-        description = lib.mdDoc "Enable the flood web UI";
-      };
-
-      useVpn = mkOption {
-        type = types.bool;
-        default = false;
-        description = lib.mdDoc "Run Flood through VPN";
-      };
-
-      port = mkOption {
-        type = types.port;
-        default = 3000;
-        description = lib.mdDoc ''
-          The port that Flood should listen for web connections on.
-        '';
-      };
-
-      stateDir = mkOption {
-        type = types.path;
-        default = "${servarr.stateDir}/servarr/flood";
-        description = lib.mdDoc ''
-          The directory for flood to keep its state in.
-        '';
-      };
-    };
   };
 
   config = mkIf cfg.enable {
-    kirk.vpnnamespace = {
-      portMappings = [
-        (mkIf cfg.flood.useVpn {
-          From = cfg.flood.port;
-          To = cfg.flood.port;
-        }) {
-          From = 9091;
-          To = 9091;
-        }
-      ];
-      openUdpPorts = [ cfg.port ];
-      openTcpPorts = [ cfg.port ];
+    services.transmission = mkIf (!cfg.useVpn) {
+      enable = true;
+      group = "media";
+      #home = cfg.stateDir;
+      webHome = if cfg.useFlood then pkgs.flood-for-transmission else null;
+      package = pkgs.transmission_4;
+      openRPCPort = true;
+      openPeerPorts = true;
+      settings = {
+        download-dir = "${servarr.mediaDir}/torrents";
+        incomplete-dir-enabled = true;
+        incomplete-dir = "${servarr.mediaDir}/torrents/.incomplete";
+        watch-dir-enabled = true;
+        watch-dir = "${servarr.mediaDir}/torrents/.watch";
+
+        rpc-port = cfg.uiPort;
+        rpc-whitelist-enabled = true;
+        rpc-whitelist = "192.168.15.1,127.0.0.1";
+        rpc-authentication-required = true;
+
+        blocklist-enabled = true;
+        blocklist-url = "https://github.com/Naunter/BT_BlockLists/raw/master/bt_blocklists.gz";
+
+        encryption = 1;
+        utp-enabled = true;
+        port-forwarding-enabled = false;
+
+        anti-brute-force-enabled = true;
+        anti-brute-force-threshold = 10;
+      } // cfg.extraConfig;
     };
 
-    systemd.services = { 
-      transmission =  mkIf cfg.useVpn {
-        bindsTo = [ "netns@wg.service" ];
-        requires = [ "network-online.target" ];
-        after = [ "wg.service" ];
-        serviceConfig = {
-          NetworkNamespacePath = "/var/run/netns/wg";
-          #BindReadOnlyPaths="/etc/netns/wg/resolv.conf:/etc/resolv.conf:norbind";
+    kirk.vpnnamespace = mkIf cfg.useVpn {
+      portMappings = [{
+        From = cfg.uiPort;
+        To = cfg.uiPort;
+      }];
+      openUdpPorts = [ cfg.peerPort ];
+      openTcpPorts = [ cfg.peerPort ];
+    };
+
+    containers.transmission = mkIf cfg.useVpn {
+      autoStart = true;
+      ephemeral = true;
+      extraFlags = [ "--network-namespace-path=/var/run/netns/wg" ];
+
+      bindMounts = {
+        "${servarr.mediaDir}/torrents".isReadOnly = false;
+        "/var/lib/transmission" = {
+          hostPath = cfg.stateDir;
+          isReadOnly = false;
         };
+      };
+
+      config = {
+        users.groups.media = {
+          gid = config.users.groups.media.gid;
+        };
+        users.users.transmission = {
+          uid = lib.mkForce config.users.users.transmission.uid;
+          isSystemUser = true;
+          group = "media";
+        };
+
+        # Use systemd-resolved inside the container
+        # Workaround for bug https://github.com/NixOS/nixpkgs/issues/162686
+        networking.useHostResolvConf = lib.mkForce false;
+        services.resolved.enable = true;
+        networking.nameservers = [ dnsServer ];
+
+        systemd.services.transmission.serviceConfig = {
+          RootDirectoryStartOnly = lib.mkForce false;
+          RootDirectory = lib.mkForce "";
+        };
+
+        services.transmission = {
+          enable = true;
+          # This is wrong, too afraid to fix it lol
+          group = "media";
+          webHome = if cfg.useFlood then pkgs.flood-for-transmission else null;
+          package = pkgs.transmission_4;
+          openRPCPort = true;
+          openPeerPorts = true;
+          settings = {
+            download-dir = "${servarr.mediaDir}/torrents";
+            incomplete-dir-enabled = true;
+            incomplete-dir = "${servarr.mediaDir}/torrents/.incomplete";
+            watch-dir-enabled = true;
+            watch-dir = "${servarr.mediaDir}/torrents/.watch";
+
+            rpc-bind-address = "192.168.15.1";
+            rpc-port = cfg.uiPort;
+            rpc-whitelist-enabled = false;
+            rpc-whitelist = "192.168.15.1,127.0.0.1";
+            rpc-authentication-required = false;
+
+            blocklist-enabled = true;
+            blocklist-url = "https://github.com/Naunter/BT_BlockLists/raw/master/bt_blocklists.gz";
+
+            peer-port = cfg.peerPort;
+            dht-enabled = true;
+            pex-enabled = true;
+            utp-enabled = false;
+            encryption = 1;
+            port-forwarding-enabled = false;
+
+            anti-brute-force-enabled = true;
+            anti-brute-force-threshold = 10;
+
+            # 0 = None, 1 = Critical, 2 = Error, 3 = Warn, 4 = Info, 5 = Debug, 6 = Trace
+            message-level = 3;
+          } // cfg.extraConfig;
+        };
+
+        environment.systemPackages = with pkgs; [
+          curl
+          wget
+        ];
+
+        system.stateVersion = "23.11";
       };
     };
 
-    services.transmission = {
-      enable = cfg.enable;
-      #home = cfg.stateDir;
-      webHome = pkgs.flood-for-transmission;
-      settings = {
-        download-dir = "${servarr.mediaDir}/torrents";
-        incomplete-dir = "${servarr.mediaDir}/torrents/.incomplete";
-        incomplete-dir-enabled = true;
-        watch-dir = "${servarr.mediaDir}/torrents/.watch";
-        watch-dir-enabled = true;
-        peer-port = cfg.port;
-        port-forwarding-enabled = false;
-        credentialsFile = "/var/lib/secrets/transmission/config.json";
-        rpc-username = "transmission";
-        rpc-host-whitelist-enabled = false;
-      } // cfg.extraConfig;
-      openFirewall = true;
+    services.nginx = mkIf cfg.useVpn {
+      enable = true;
+
+      recommendedTlsSettings = true;
+      recommendedOptimisation = true;
+      recommendedGzipSettings = true;
+
+      virtualHosts."127.0.0.1:${builtins.toString cfg.uiPort}" = {
+        listen = [
+          {
+            addr = "0.0.0.0";
+            port = cfg.uiPort;
+          }
+        ];
+        locations."/" = {
+          recommendedProxySettings = true;
+          proxyWebsockets = true;
+          proxyPass = "http://192.168.15.1:${builtins.toString cfg.uiPort}";
+        };
+      };
     };
-
-    #services.flood = {
-    #  enable = cfg.flood.enable;
-    #  port = cfg.flood.port;
-    #  group = config.services.transmission.group;
-    #  openFirewall = false;
-    #  auth.transmission = {
-    #    url = "http://"
-    #        + config.services.transmission.settings.rpc-bind-address
-    #        + ":"
-    #        + builtins.toString config.services.transmission.settings.rpc-port
-    #        + "/transmission/";
-    #    user = "transmission";
-    #    pass = "test-password";
-    #  };
-    #};
-
-    networking.firewall.allowedTCPPorts = [ 
-      cfg.port # rTorrent
-      cfg.dhtPort # rTorrent DHT
-      9091
-    ];
-
-    networking.firewall.allowedUDPPorts = [ 
-      cfg.port # rTorrent
-      cfg.dhtPort # rTorrent DHT
-      9091
-    ];
-
-    #services.nginx = mkIf (cfg.enable && cfg.useVpn) {
-    #  enable = true;
-
-    #  recommendedTlsSettings = true;
-    #  recommendedOptimisation = true;
-    #  recommendedGzipSettings = true;
-
-    #  virtualHosts."127.0.0.1" = {
-    #    listen = [
-    #      {
-    #        addr = "0.0.0.0";
-    #        port = 9091;
-    #      }
-    #    ];
-    #    locations."/" = {
-    #      recommendedProxySettings = true;
-    #      proxyWebsockets = true;
-    #      proxyPass = "http://192.168.15.1:9091/transmission/web";
-    #    };
-    #  };
-    #};
   };
 }
