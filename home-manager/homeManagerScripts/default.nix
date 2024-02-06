@@ -24,13 +24,20 @@ with lib; let
   hm-update = pkgs.writeShellApplication {
     name = "hm-update";
     text = ''
-      nix flake update ${configDir}
+      nix flake update --flake ${configDir}
     '';
   };
 
   hm-upgrade = pkgs.writeShellApplication {
     name = "hm-upgrade";
     text = ''
+      # TODO: test this.
+      #sudo su
+      #nix-env --install --file '<nixpkgs>' --attr nixVersions.unstable cacert -I nixpkgs=channel:nixpkgs-unstable
+      #systemctl daemon-reload
+      #systemctl restart nix-daemon
+      #exit
+
       # Update, switch to new config, and cleanup
       ${hm-update}/bin/hm-update &&
       ${hm-rebuild}/bin/hm-rebuild &&
@@ -42,7 +49,7 @@ with lib; let
     name = "hm-rebuild";
     text = ''
       # Update the inputs of this repo on every rebuild
-      nix flake update kirk-modules ${configDir}
+      nix flake update kirk-modules --flake ${cfg.configDir} &&
       # Switch configuration, backing up files
       home-manager switch -b backup --flake ${configDir}#${cfg.machine}
     '';

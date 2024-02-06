@@ -34,6 +34,7 @@ in {
   config = mkIf cfg.enable {
     services.radarr = mkIf (!cfg.useVpn) {
       enable = cfg.enable;
+      user = "radarr";
       group = "media";
       dataDir = "${config.kirk.servarr.stateDir}/servarr/radarr";
     };
