@@ -45,6 +45,12 @@ in {
       another VPN, create a PR or fork this repo!
     '';
 
+    mediaUsers = mkOption {
+      type = with types; listOf str;
+      default = [];
+      description = "Extra users to add the the media group, giving access to the media directory. You probably want to add your own user here.";
+    };
+
     mediaDir = mkOption {
       type = types.path;
       default = "~/servarr";
@@ -120,6 +126,7 @@ in {
   config = mkIf cfg.enable {
     users.groups = {
       media = {
+        members = cfg.mediaUsers;
         gid = 992;
       };
       prowlarr = {};
@@ -162,13 +169,13 @@ in {
       "d '${cfg.stateDir}/servarr/radarr'       0700 radarr       root  - -"
       "d '${cfg.stateDir}/servarr/prowlarr'     0700 prowlarr     root  - -"
 
-      "d '${cfg.mediaDir}'                      0775 root         media  - -"
-      "d '${cfg.mediaDir}/library'              0770 jellyfin     media - -"
-      "d '${cfg.mediaDir}/library/series'       0770 jellyfin     media - -"
-      "d '${cfg.mediaDir}/library/movies'       0770 jellyfin     media - -"
-      "d '${cfg.mediaDir}/torrents'             0750 transmission media - -"
-      "d '${cfg.mediaDir}/torrents/.incomplete' 0750 transmission media - -"
-      "d '${cfg.mediaDir}/torrents/.watch'      0750 transmission media - -"
+      "d '${cfg.mediaDir}'                      0775 root         media - -"
+      "d '${cfg.mediaDir}/library'              0775 jellyfin     media - -"
+      "d '${cfg.mediaDir}/library/series'       0775 jellyfin     media - -"
+      "d '${cfg.mediaDir}/library/movies'       0775 jellyfin     media - -"
+      "d '${cfg.mediaDir}/torrents'             0755 transmission media - -"
+      "d '${cfg.mediaDir}/torrents/.incomplete' 0755 transmission media - -"
+      "d '${cfg.mediaDir}/torrents/.watch'      0755 transmission media - -"
     ];
 
     kirk.upnp.enable = cfg.upnp.enable;
