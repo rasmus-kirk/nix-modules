@@ -39,7 +39,7 @@ in {
 
     useFlood = mkOption {
       type = types.bool;
-      default = true;
+      default = false;
       description = lib.mdDoc "Use the flood UI";
     };
 
@@ -47,12 +47,6 @@ in {
       type = types.port;
       default = 50000;
       description = "transmission peer traffic port.";
-    };
-
-    dhtPort = mkOption {
-      type = types.port;
-      default = 6881;
-      description = "transmission dht port.";
     };
 
     uiPort = mkOption {
