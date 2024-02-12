@@ -3,10 +3,28 @@
 # TODO: Make it so you can make multiple namespaces by giving a list of
 # objects with settings as attributes. Also add an option to enable whether
 # the namespace should use a vpn or not.
-with lib;
+with builtins;
 let
+  ## Extracts addresses from a wg-quick config file
+  #extractAddresses = wgConfPath: 
+  #  let lines = split "\n" (readFile wgConfPath); 
+  #      addrLine = headMay (filter (x: typeOf x == "string" && match ".*Address.*" x != null) lines); 
+  #  in if addrLine == null then [] else let
+  #      ipsUnsplit = head (match "Address ?=(.*)" addrLine);
+  #  in if ipsUnsplit == null then [] else let
+  #      ips = filter (x: typeOf x == "string") (split "," ipsUnsplit);
+  #      ipsNoSpaces = map (replaceStrings [" "] [""]) ips;
+  #  in filter isIp ipsNoSpaces;
+  ## Extracts the first ipv4 address from a wg-quick config file
+  #extractIpv4Address = wgConfPath:
+  #  let ipv4s = filter isIpv4 (extractAddresses wgConfPath); in 
+  #  headMay ipv4s;
+  ## Extracts the first ipv6 address from a wg-quick config file
+  #extractIpv6Address = wgConfPath:
+  #  let ipv6s = filter isIpv6 (extractAddresses wgConfPath); in 
+  #  headMay ipv6s;
   cfg = config.kirk.vpnnamespace;
-in {
+in with lib; {
   options.kirk.vpnnamespace = {
     enable = mkEnableOption (lib.mdDoc "VPN Namespace") // {
       description = lib.mdDoc ''
@@ -99,13 +117,13 @@ in {
       }];
     };
 
-    dnsServer = mkOption {
-      type = types.str;
-      default = "1.1.1.2";
+    dnsServers = mkOption {
+      type = with types; nullOr (listOf str);
+      default = loadDns wireguardConfigFile; #[ "1.1.1.2" ];
       description = lib.mdDoc ''
-        YOUR VPN WILL LEAK IF THIS IS NOT SET. The dns address of your vpn
+        YOUR VPN WILL LEAK IF THIS IS NOT SET. The dns address of your vpn.
       '';
-      example = "1.1.1.2";
+      example = [ "1.1.1.2" ];
     };
 
     openTcpPorts = mkOption {
@@ -142,7 +160,64 @@ in {
     };
   };
 
-  config = mkIf cfg.enable {
+  config = 
+  let
+      #wgAddress = extractIpv4Address cfg.wireguardConfigFile;
+      #dnsServers = [ "adsf" ];
+      wgAddress = "0.0.0.0";
+      headMay = list: if list == [] then null else head list; 
+      # Checks if string is ipv4, from SO, hope it works well
+      # https://stackoverflow.com/questions/53497/regular-expression-that-matches-valid-ipv6-addresses
+      isIpv4 = address:
+        let pat = "((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])?/?[0-9]?[0-9]";
+            regex = match pat address;
+        in regex != null;
+      # Checks if string is ipv6, from SO, hope it works well
+      # https://stackoverflow.com/questions/53497/regular-expression-that-matches-valid-ipv6-addresses
+      isIpv6 = address:
+        let pat = "(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))";
+            regex = match pat address;
+        in regex != null;
+      isIp = ip: (isIpv4 ip || isIpv6 ip);
+      # Extracts dns servers from a wg-quick config file
+      #extractedDns =
+      #  let lines = split "\n" (readFile cfg.wireguardConfigFile); 
+      #      dnsLine = head (filter (x: typeOf x == "string" && match ".*DNS.*" x != null) lines); 
+      #      ipsUnsplit = head (match "DNS ?=(.*)" dnsLine);
+      #      ips = filter (x: typeOf x == "string") (split "," ipsUnsplit);
+      #      ipsNoSpaces = map (replaceStrings [" "] [""]) ips;
+      #  in filter isIp ipsNoSpaces;
+      # Extracts dns servers from a wg-quick config file
+      #extractDns = wgConfPath: 
+      #  let lines = split "\n" (readFile wgConfPath); 
+      #      dnsLine = headMay (filter (x: typeOf x == "string" && match ".*DNS.*" x != null) lines); 
+      #  in if dnsLine == null then [] else let
+      #      ipsUnsplit = head (match "DNS ?=(.*)" dnsLine);
+      #  in if ipsUnsplit == null then [] else let
+      #      ips = filter (x: typeOf x == "string") (split "," ipsUnsplit);
+      #      ipsNoSpaces = map (replaceStrings [" "] [""]) ips;
+      #  in filter isIp ipsNoSpaces;
+      #extractedDns = [ "0.0.0.0" ];
+      #extractedDns = [ "0.0.0.0" ];
+  in
+  #assert ( extractedDns != [] ) || abort "There must be at least 1 DNS server set.";
+  assert ( wgAddress != null ) || abort "No address found in config file.";
+  mkIf cfg.enable {
+    lib.vpn = {
+      dnsServers =
+        let lines = split "\n" (readFile cfg.wireguardConfigFile); 
+            dnsLine = headMay (filter (x: typeOf x == "string" && match ".*DNS.*" x != null) lines); 
+        in if dnsLine == null then [] else let
+            ipsUnsplit = head (match "DNS ?=(.*)" dnsLine);
+        in if ipsUnsplit == null then [] else let
+            ips = filter (x: typeOf x == "string") (split "," ipsUnsplit);
+            ipsNoSpaces = map (replaceStrings [" "] [""]) ips;
+            correctIps = filter isIp ipsNoSpaces;
+        in
+          assert ( correctIps != [] ) || abort "There must be at least 1 DNS server set.";
+          correctIps;
+    };
+  
     boot.kernel.sysctl."net.ipv4.ip_forward" = 1;
 
     systemd.services = {
@@ -165,6 +240,15 @@ in {
         wantedBy = [ "netns@wg.service" ];
 
         serviceConfig = let 
+          lines = split "\n" (readFile cfg.wireguardConfigFile); 
+          addrLine = headMay (filter (x: typeOf x == "string" && match ".*Address.*" x != null) lines); 
+          in if addrLine == null then [] else let
+          ipsUnsplit = head (match "Address ?=(.*)" addrLine);
+          in if ipsUnsplit == null then [] else let
+          ips = filter (x: typeOf x == "string") (split "," ipsUnsplit);
+          ipsNoSpaces = map (replaceStrings [" "] [""]) ips;
+          wgIpv4Address = headMay (filter isIpv4 ipsNoSpaces);
+
           vpn-namespace = pkgs.writeShellApplication {
             name = "vpn-namespace";
 
@@ -174,10 +258,13 @@ in {
               # Set up the wireguard interface
               tmpdir=$(mktemp -d) 
               cat ${cfg.wireguardConfigFile} > "$tmpdir/wg.conf"
+
+              # Get dns servers
+              grep "DNS =" "$tmpdir/wg.conf" | sed 's/DNS =//g' | sed 's/,/\n/g' | sed 's/ //g' | sed 's/^/nameserver: /g' > "$tmpdir/resolv.conf"
             
               ip link add wg0 type wireguard
               ip link set wg0 netns wg
-              ip -n wg address add "$(cat ${cfg.wireguardAddressPath})" dev wg0
+              ip -n wg address add "${wgIpv4Address}" dev wg0
               ip netns exec wg wg setconf wg0 <(wg-quick strip "$tmpdir/wg.conf")
               ip -n wg link set wg0 up
               ip -n wg route add default dev wg0
@@ -197,11 +284,13 @@ in {
               ip -n wg addr add ${cfg.namespaceAddress}/24 dev veth-vpn
               ip -n wg link set dev veth-vpn up
 
+              echo "setting dns"
               # DNS test, see:
               # https://www.man7.org/linux/man-pages/man8/wg-quick.8.html
-              #ip netns exec resolvconf -a tun.wg0 -m 0 -x
+              # Absolutely no luck...
+              #echo "nameserver 1.1.1.1" | ip netns exec wg resolvconf -a wg0 -m 0 -x
 
-              mkdir -p /etc/netns/wg/ && echo "nameserver ${cfg.dnsServer}" > /etc/netns/wg/resolv.conf
+              echo "Hello test"
             ''
 
             # Add routes to make the namespace accessible
@@ -240,7 +329,7 @@ in {
 
             # DNS test, see:
             # https://www.man7.org/linux/man-pages/man8/wg-quick.8.html
-            #ip netns exec resolvconf -d tun.wg0
+            #${iproute2}/bin/ip netns exec wg resolvconf -d wg0
           ''
 
           # Delete prerouting rules
@@ -263,7 +352,7 @@ in {
               # Print resolv.conf
               echo "/etc/resolv.conf contains:"
               cat /etc/resolv.conf
-              echo ""
+              #echo ""
 
               # Query resolvconf
               echo "resolvconf output:"
@@ -271,14 +360,15 @@ in {
               echo ""
 
               # Get ip
+              echo "Getting IP:"
               curl -s ipinfo.io
 
               echo -ne "Making DNS requests... "
               # shellcheck disable=SC2034
-              DATA=$(for i in {1..10}; do dig "$RANDOM.go.dnscheck.tools" TXT +short | grep -e remoteIP -e remoteNetwork | sort; done)
-              echo -ne "done\n\n"
-              echo -ne "Summary of your DNS resolvers:\n\n"
-              echo "$DATA" | sort | uniq -c | sort -nr | sed -e 's/"//g' -e 's/remoteIP:/|/' -e 's/remoteNetwork:/|/' | column -t -s '|'
+              #DATA=$(for i in {1..10}; do dig "$RANDOM.go.dnscheck.tools" TXT +short | grep -e remoteIP -e remoteNetwork | sort; done)
+              #echo -ne "done\n\n"
+              #echo -ne "Summary of your DNS resolvers:\n\n"
+              #echo "$DATA" | sort | uniq -c | sort -nr | sed -e 's/"//g' -e 's/remoteIP:/|/' -e 's/remoteNetwork:/|/' | column -t -s '|'
 
               # DNS leak test
               curl -s https://raw.githubusercontent.com/macvk/dnsleaktest/b03ab54d574adbe322ca48cbcb0523be720ad38d/dnsleaktest.sh -o dnsleaktest.sh
@@ -295,10 +385,8 @@ in {
         requires = [ "network-online.target" ];
         after = [ "wg.service" ];
         serviceConfig = {
-          #User = "media";
-          #Group = "media";
           NetworkNamespacePath = "/var/run/netns/wg";
-          #BindReadOnlyPaths="/etc/netns/wg/resolv.conf:/etc/resolv.conf:norbind";
+          BindReadOnlyPaths="/etc/netns/wg/resolv.conf:/etc/resolv.conf:norbind";
         };
       };
     };

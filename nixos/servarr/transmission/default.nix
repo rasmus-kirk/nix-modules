@@ -8,7 +8,7 @@
 with lib; let
   cfg = config.kirk.servarr.transmission;
   servarr = config.kirk.servarr;
-  dnsServer = config.kirk.vpnnamespace.dnsServer;
+  dnsServers = config.lib.vpn.dnsServers;
 in {
   options.kirk.servarr.transmission = {
     enable = mkOption {
@@ -131,7 +131,7 @@ in {
         # Workaround for bug https://github.com/NixOS/nixpkgs/issues/162686
         networking.useHostResolvConf = lib.mkForce false;
         services.resolved.enable = true;
-        networking.nameservers = [ dnsServer ];
+        networking.nameservers = dnsServers;
 
         systemd.services.transmission.serviceConfig = {
           RootDirectoryStartOnly = lib.mkForce false;

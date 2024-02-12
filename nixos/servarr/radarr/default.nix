@@ -9,7 +9,7 @@ with lib; let
   cfg = config.kirk.servarr.radarr;
   defaultPort = 7878;
   servarr = config.kirk.servarr;
-  dnsServer = config.kirk.vpnnamespace.dnsServer;
+  dnsServers = config.kirk.vpnnamespace.dnsServers;
 in {
   options.kirk.servarr.radarr = {
     enable = mkOption {
@@ -61,7 +61,7 @@ in {
         # Workaround for bug https://github.com/NixOS/nixpkgs/issues/162686
         networking.useHostResolvConf = lib.mkForce false;
         services.resolved.enable = true;
-        networking.nameservers = [ dnsServer ];
+        networking.nameservers = dnsServers;
 
         users.groups.media = {};
 

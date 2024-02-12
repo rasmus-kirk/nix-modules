@@ -7,7 +7,7 @@
 }:
 with lib; let
   defaultPort = 9696;
-  dnsServer = config.kirk.vpnnamespace.dnsServer;
+  dnsServers = config.kirk.vpnnamespace.dnsServer;
   servarr = config.kirk.servarr;
   cfg = config.kirk.servarr.prowlarr;
 in {
@@ -63,7 +63,7 @@ in {
         # Workaround for bug https://github.com/NixOS/nixpkgs/issues/162686
         networking.useHostResolvConf = lib.mkForce false;
         services.resolved.enable = true;
-        networking.nameservers = [ dnsServer ];
+        networking.nameservers = dnsServers;
 
         users.groups.prowlarr = {};
         users.users.prowlarr = {

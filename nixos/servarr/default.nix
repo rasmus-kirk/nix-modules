@@ -80,13 +80,13 @@ in {
         description = "REQUIRED! wg address.";
       };
 
-      dnsServer = mkOption {
-        type = types.str;
-        default = "1.1.1.2";
+      dnsServers = mkOption {
+        type = with types; nullOr (listOf str);
+        default = null;
         description = lib.mdDoc ''
           YOUR VPN WILL LEAK IF THIS IS NOT SET. The dns address of your vpn
         '';
-        example = "1.1.1.2";
+        example = [ "1.1.1.2" ];
       };
 
       vpnTestService = {
@@ -186,7 +186,7 @@ in {
         "192.168.1.0/24"
         "127.0.0.1"
       ];
-      dnsServer = cfg.vpn.dnsServer;
+      dnsServers = cfg.vpn.dnsServers;
       wireguardAddressPath = cfg.vpn.wgAddress;
       wireguardConfigFile = cfg.vpn.wgConf;
       vpnTestService = {
