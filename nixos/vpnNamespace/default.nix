@@ -145,18 +145,18 @@ in {
   config = mkIf cfg.enable {
     boot.kernel.sysctl."net.ipv4.ip_forward" = 1;
 
-    systemd.services."netns@" = {
-      description = "%I network namespace";
-      before = [ "network.target" ];
-      serviceConfig = {
-        Type = "oneshot";
-        RemainAfterExit = true;
-        ExecStart = "${pkgs.iproute2}/bin/ip netns add %I";
-        ExecStop = "${pkgs.iproute2}/bin/ip netns del %I";
-      };
-    };
-
     systemd.services = {
+      "netns@" = {
+        description = "%I network namespace";
+        before = [ "network.target" ];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+          ExecStart = "${pkgs.iproute2}/bin/ip netns add %I";
+          ExecStop = "${pkgs.iproute2}/bin/ip netns del %I";
+        };
+      };
+
       wg = {
         description = "wg network interface";
         bindsTo = [ "netns@wg.service" ];
@@ -197,6 +197,10 @@ in {
               ip -n wg addr add ${cfg.namespaceAddress}/24 dev veth-vpn
               ip -n wg link set dev veth-vpn up
 
+              # DNS test, see:
+              # https://www.man7.org/linux/man-pages/man8/wg-quick.8.html
+              #ip netns exec resolvconf -a tun.wg0 -m 0 -x
+
               mkdir -p /etc/netns/wg/ && echo "nameserver ${cfg.dnsServer}" > /etc/netns/wg/resolv.conf
             ''
 
@@ -233,6 +237,10 @@ in {
             ${iproute2}/bin/ip -n wg link del wg0
             ${iproute2}/bin/ip -n wg link del veth-vpn
             ${iproute2}/bin/ip link del v-net-0
+
+            # DNS test, see:
+            # https://www.man7.org/linux/man-pages/man8/wg-quick.8.html
+            #ip netns exec resolvconf -d tun.wg0
           ''
 
           # Delete prerouting rules
@@ -241,6 +249,8 @@ in {
       };
 
       vpn-test-service = {
+        enable = cfg.vpnTestService.enable;
+
         script = let
           vpn-test = pkgs.writeShellApplication {
             name = "vpn-test";
@@ -288,7 +298,7 @@ in {
           #User = "media";
           #Group = "media";
           NetworkNamespacePath = "/var/run/netns/wg";
-          BindReadOnlyPaths="/etc/netns/wg/resolv.conf:/etc/resolv.conf:norbind";
+          #BindReadOnlyPaths="/etc/netns/wg/resolv.conf:/etc/resolv.conf:norbind";
         };
       };
     };
