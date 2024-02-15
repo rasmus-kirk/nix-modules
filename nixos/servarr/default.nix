@@ -18,15 +18,18 @@ in {
   
   options.kirk.servarr = {
     enable = mkEnableOption ''
-      My servarr setup. Lets you host the servarr services optionally through
-      a VPN. Also sets permissions and creates folders.
+      My servarr setup. Lets you host the servarr services optionally
+      through a VPN. It is possible, BUT NOT RECOMENDED, to have
+      prowlarr/sonarr/radarr/readarr/lidarr behind a VPN. Generally, you
+      should use VPN on transmission and maybe jellyfin, depending on your
+      setup. Also sets permissions and creates folders.
 
       - Jellyfin
+      - Lidarr
       - Prowlarr
-      - Sonarr
       - Radarr
       - Readarr
-      - Lidarr
+      - Sonarr
       - Transmission
 
       Remember to read the options.
@@ -53,7 +56,7 @@ in {
     upnp.enable = mkEnableOption "Enable automatic port forwarding using UPNP.";
 
     vpn = {
-      enable = mkEnableOption ''enable vpn'';
+      enable = mkEnableOption ''Enable vpn'';
 
       wgConf = mkOption {
         type = types.nullOr types.path;
@@ -65,7 +68,8 @@ in {
         type = with types; nullOr (listOf str);
         default = null;
         description = lib.mdDoc ''
-          YOUR VPN WILL LEAK IF THIS IS NOT SET. The dns address of your vpn
+          Extra DNS servers for the VPN. If your wg config has a DNS field,
+          then this should not be necessary.
         '';
         example = [ "1.1.1.2" ];
       };
@@ -87,8 +91,9 @@ in {
         type = with types; listOf port;
         default = [];
         description = lib.mdDoc ''
-          What TCP ports to allow incoming traffic from. You need this if
-          you're port forwarding on your VPN provider.
+          What TCP ports to allow incoming traffic from. You might need this
+          if you're port forwarding on your VPN provider and you're setting
+          up services that is not covered in by this module.
         '';
         example = [ 46382 38473 ];
       };
@@ -97,8 +102,9 @@ in {
         type = with types; listOf port;
         default = [];
         description = lib.mdDoc ''
-          What UDP ports to allow incoming traffic from. You need this if
-          you're port forwarding on your VPN provider.
+          What UDP ports to allow incoming traffic from. You might need this
+          if you're port forwarding on your VPN provider and you're setting
+          up services that is not covered in by this module.
         '';
         example = [ 46382 38473 ];
       };
@@ -156,25 +162,35 @@ in {
     };
 
     systemd.tmpfiles.rules = [
-      "d '${cfg.stateDir}'                      0755 root         root  - -"
-      "d '${cfg.stateDir}/servarr'              0755 root         root  - -"
-      "d '${cfg.stateDir}/servarr/jellyfin'     0700 jellyfin     root  - -"
-      "d '${cfg.stateDir}/servarr/transmission' 0700 transmission root  - -"
-      "d '${cfg.stateDir}/servarr/sonarr'       0700 sonarr       root  - -"
-      "d '${cfg.stateDir}/servarr/radarr'       0700 radarr       root  - -"
-      "d '${cfg.stateDir}/servarr/readarr'      0700 readarr      root  - -"
-      "d '${cfg.stateDir}/servarr/lidarr'       0700 lidarr       root  - -"
-      "d '${cfg.stateDir}/servarr/prowlarr'     0700 prowlarr     root  - -"
+      # State dirs
+      "d '${cfg.stateDir}'                        0755 root         root  - -"
+      "d '${cfg.stateDir}/servarr'                0755 root         root  - -"
+      "d '${cfg.stateDir}/servarr/jellyfin'       0700 jellyfin     root  - -"
+      "d '${cfg.stateDir}/servarr/transmission'   0700 transmission root  - -"
+      "d '${cfg.stateDir}/servarr/sonarr'         0700 sonarr       root  - -"
+      "d '${cfg.stateDir}/servarr/radarr'         0700 radarr       root  - -"
+      "d '${cfg.stateDir}/servarr/readarr'        0700 readarr      root  - -"
+      "d '${cfg.stateDir}/servarr/lidarr'         0700 lidarr       root  - -"
+      "d '${cfg.stateDir}/servarr/prowlarr'       0700 prowlarr     root  - -"
 
-      "d '${cfg.mediaDir}'                      0775 root         media - -"
-      "d '${cfg.mediaDir}/library'              0775 jellyfin     media - -"
-      "d '${cfg.mediaDir}/library/series'       0775 jellyfin     media - -"
-      "d '${cfg.mediaDir}/library/movies'       0775 jellyfin     media - -"
-      "d '${cfg.mediaDir}/library/music'        0775 jellyfin     media - -"
-      "d '${cfg.mediaDir}/library/books'        0775 jellyfin     media - -"
-      "d '${cfg.mediaDir}/torrents'             0755 transmission media - -"
-      "d '${cfg.mediaDir}/torrents/.incomplete' 0755 transmission media - -"
-      "d '${cfg.mediaDir}/torrents/.watch'      0755 transmission media - -"
+      # Media dirs
+      "d '${cfg.mediaDir}'                        0775 root         media - -"
+      "d '${cfg.mediaDir}/library'                0775 jellyfin     media - -"
+      "d '${cfg.mediaDir}/library/series'         0775 jellyfin     media - -"
+      "d '${cfg.mediaDir}/library/movies'         0775 jellyfin     media - -"
+      "d '${cfg.mediaDir}/library/music'          0775 jellyfin     media - -"
+      "d '${cfg.mediaDir}/library/books'          0775 jellyfin     media - -"
+      "d '${cfg.mediaDir}/torrents'               0755 transmission media - -"
+      "d '${cfg.mediaDir}/torrents/.incomplete'   0755 transmission media - -"
+      "d '${cfg.mediaDir}/torrents/.watch'        0755 transmission media - -"
+      "d '${cfg.mediaDir}/torrents/music/liadarr' 0755 transmission media - -"
+      "d '${cfg.mediaDir}/torrents/music/manual'  0755 transmission media - -"
+      "d '${cfg.mediaDir}/torrents/movies/radarr' 0755 transmission media - -"
+      "d '${cfg.mediaDir}/torrents/movies/manual' 0755 transmission media - -"
+      "d '${cfg.mediaDir}/torrents/series/sonarr' 0755 transmission media - -"
+      "d '${cfg.mediaDir}/torrents/series/manual' 0755 transmission media - -"
+      "d '${cfg.mediaDir}/torrents/books/readarr' 0755 transmission media - -"
+      "d '${cfg.mediaDir}/torrents/books/manual'  0755 transmission media - -"
     ];
 
     kirk.upnp.enable = cfg.upnp.enable;

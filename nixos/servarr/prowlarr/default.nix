@@ -21,7 +21,9 @@ in {
     stateDir = mkOption {
       type = types.path;
       default = "${servarr.stateDir}/servarr/prowlarr";
-      description = lib.mdDoc "The state directory for prowlarr. Currently doesn't work";
+      description = lib.mdDoc ''
+        The state directory for prowlarr. Currently doesn't work, except with VPN.
+      '';
     };
 
     useVpn = mkOption {

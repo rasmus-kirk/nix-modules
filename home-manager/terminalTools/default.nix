@@ -109,17 +109,18 @@ in {
     };
 
     home.packages = with pkgs; [
-      rig # Random Identities for Privacy
+      bat-extras.batman # Pretty Man Pages
       btop # Task Manager
-      silver-searcher # Search in Files
-      jq # JSON Parser
-      tealdeer # TLDR for CLI Commands
+      du-dust # Pretty du
+      duf # Pretty df
       eza # Pretty ls
       fd # Find Files
-      duf # Pretty df
-      du-dust # Pretty du
+      jq # JSON Parser
+      rig # Random Identities for Privacy
+      silver-searcher # Search in Files
+      tealdeer # TLDR for CLI Commands
       trash-cli # Trash Files in Terminal
-      bat-extras.batman
+      tree # View Directory as Tree
     ];
   };
 }
