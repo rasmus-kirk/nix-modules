@@ -20,13 +20,13 @@ in {
 
     stateDir = mkOption {
       type = types.path;
-      default = "${cfg.stateDir}/servarr/radarr";
+      default = "${servarr.stateDir}/servarr/radarr";
       description = lib.mdDoc "The state directory for radarr";
     };
 
     useVpn = mkOption {
       type = types.bool;
-      default = config.kirk.servarr.vpn.enable;
+      default = false;
       description = lib.mdDoc "Use VPN with radarr";
     };
   };

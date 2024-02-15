@@ -33,7 +33,7 @@ in {
 
     useVpn = mkOption {
       type = types.bool;
-      default = config.kirk.servarr.vpn.enable;
+      default = false;
       description = lib.mdDoc "Run transmission through VPN";
     };
 
@@ -140,7 +140,7 @@ in {
 
         services.transmission = {
           enable = true;
-          # This is wrong, too afraid to fix it lol
+          # This is maybe wrong, too afraid to fix it lol
           group = "media";
           webHome = if cfg.useFlood then pkgs.flood-for-transmission else null;
           package = pkgs.transmission_4;

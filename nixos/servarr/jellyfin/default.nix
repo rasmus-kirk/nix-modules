@@ -7,6 +7,7 @@
 }:
 with lib; let
   cfg = config.kirk.servarr.jellyfin;
+  servarr = config.kirk.servarr;
 in {
   options.kirk.servarr.jellyfin = {
     enable = mkOption {
@@ -17,7 +18,7 @@ in {
 
     stateDir = mkOption {
       type = types.path;
-      default = "${cfg.stateDir}/servarr/rtorrent";
+      default = "${servarr.stateDir}/servarr/jellyfin";
       description = lib.mdDoc "The state directory for jellyfin";
     };
 

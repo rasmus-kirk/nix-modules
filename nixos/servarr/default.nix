@@ -53,13 +53,13 @@ in {
 
     mediaDir = mkOption {
       type = types.path;
-      default = "~/servarr";
+      default = "/data/media";
       description = "The location of the media directory for the services.";
     };
 
     stateDir = mkOption {
       type = types.path;
-      default = "~/.local/state";
+      default = "/data/.state";
       description = "The location of the state directory for the services.";
     };
 

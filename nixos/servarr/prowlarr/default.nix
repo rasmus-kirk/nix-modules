@@ -26,7 +26,7 @@ in {
 
     useVpn = mkOption {
       type = types.bool;
-      default = config.kirk.servarr.vpn.enable;
+      default = false;
       description = lib.mdDoc "Use VPN with prowlarr";
     };
   };
