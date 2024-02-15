@@ -13,14 +13,14 @@ in {
   options.kirk.servarr.transmission = {
     enable = mkOption {
       type = types.bool;
-      default = true;
-      description = lib.mdDoc "enable transmission";
+      default = false;
+      description = lib.mdDoc "Enable transmission";
     };
 
     stateDir = mkOption {
       type = types.path;
       default = "${servarr.stateDir}/servarr/transmission";
-      description = lib.mdDoc "The state directory for transmission";
+      description = lib.mdDoc "The state directory for transmission. Only works with useVpn option.";
     };
 
     downloadDir = mkOption {
@@ -58,7 +58,7 @@ in {
     extraConfig = mkOption {
       type = types.attrs;
       default = {};
-      description = "Extra config for the service.";
+      description = "Extra settings config for the transmission service.";
     };
   };
 

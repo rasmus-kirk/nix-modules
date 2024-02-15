@@ -1,27 +1,23 @@
-# TODO: Dir creation and file permissions in nix
 {
-  pkgs,
   config,
   lib,
   ...
 }:
 with lib; let
-  defaultPort = 9696;
-  dnsServers = config.kirk.vpnnamespace.dnsServer;
+  cfg = config.kirk.servarr.lidarr;
   servarr = config.kirk.servarr;
-  cfg = config.kirk.servarr.prowlarr;
 in {
-  options.kirk.servarr.prowlarr = {
+  options.kirk.servarr.lidarr = {
     enable = mkOption {
       type = types.bool;
       default = false;
-      description = lib.mdDoc "Enable prowlarr";
+      description = lib.mdDoc "Enable lidarr";
     };
 
     stateDir = mkOption {
       type = types.path;
-      default = "${servarr.stateDir}/servarr/prowlarr";
-      description = lib.mdDoc "The state directory for prowlarr. Currently doesn't work";
+      default = "${servarr.stateDir}/servarr/lidarr";
+      description = lib.mdDoc "The state directory for lidarr";
     };
 
     useVpn = mkOption {
@@ -32,11 +28,13 @@ in {
   };
 
   config = mkIf cfg.enable {
-    services.prowlarr = mkIf (!cfg.useVpn) {
-      enable = true;
-      openFirewall = true;
+    services.lidarr = {
+      enable = cfg.enable;
+      user = "lidarr";
+      group = "media";
+      dataDir = cfg.stateDir;
     };
-  
+
     kirk.vpnnamespace.portMappings = [(
       mkIf cfg.useVpn {
         From = defaultPort;
@@ -44,24 +42,24 @@ in {
       }
     )];
 
-    containers.prowlarr = mkIf cfg.useVpn {
+    containers.lidarr= mkIf cfg.useVpn {
       autoStart = true;
       ephemeral = true;
       extraFlags = [ "--network-namespace-path=/var/run/netns/wg" ];
 
       bindMounts = {
-        "/var/lib/prowlarr" = {
-          hostPath = cfg.stateDir;
-          isReadOnly = false;
-        };
+        "${servarr.mediaDir}".isReadOnly = false;
+        "${cfg.stateDir}".isReadOnly = false;
       };
 
       config = {
-        users.groups.prowlarr = {};
-        users.users.prowlarr = {
-          uid = lib.mkForce config.users.users.prowlarr.uid;
+        users.groups.media = {
+          gid = config.users.groups.media.gid;
+        };
+        users.users.lidarr = {
+          uid = lib.mkForce config.users.users.lidarr.uid;
           isSystemUser = true;
-          group = "prowlarr";
+          group = "media";
         };
 
         # Use systemd-resolved inside the container
@@ -70,9 +68,10 @@ in {
         services.resolved.enable = true;
         networking.nameservers = dnsServers;
 
-        services.prowlarr = {
+        services.lidarr = {
           enable = true;
-          openFirewall = true;
+          group = "media";
+          dataDir = "${cfg.stateDir}";
         };
 
         system.stateVersion = "23.11";

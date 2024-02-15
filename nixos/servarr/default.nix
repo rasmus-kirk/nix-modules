@@ -1,6 +1,4 @@
-# TODO: Dir creation and file permissions in nix
 {
-  pkgs,
   config,
   lib,
   ...
@@ -11,6 +9,8 @@ in {
   imports = [
     ./jellyfin
     ./radarr
+    ./lidarr
+    ./readarr
     ./sonarr
     ./prowlarr
     ./transmission
@@ -18,31 +18,18 @@ in {
   
   options.kirk.servarr = {
     enable = mkEnableOption ''
-      My servarr setup. Hosts Jellyfin on the given domain (remember domain
-      records), tries to port forward ports 80, 443, 50000 (rTorrent) using
-      upnp and hosts the following services on localhost through a mullvad VPN:
+      My servarr setup. Lets you host the servarr services optionally through
+      a VPN. Also sets permissions and creates folders.
 
+      - Jellyfin
       - Prowlarr
       - Sonarr
       - Radarr
-      - Flood/Rtorrnet
-
-      Note that Jellyfin is _not_ run through the VPN.
-
-      Required options for this module:
-
-      - `domainName`
-      - `acmeMail`
-      - `mullvadAcc`
+      - Readarr
+      - Lidarr
+      - Transmission
 
       Remember to read the options.
-
-      NOTE: The docker service to manage this executes the command `docker
-      container prune -f` on startup for reproducibility, may cause issues
-      depending on your setup.
-
-      NOTE: This nixos module only supports the mullvad VPN, if you need
-      another VPN, create a PR or fork this repo!
     '';
 
     mediaUsers = mkOption {
@@ -74,12 +61,6 @@ in {
         description = "REQUIRED! The path to the wireguard configuration file.";
       };
 
-      wgAddress = mkOption {
-        type = types.nullOr types.path;
-        default = null;
-        description = "REQUIRED! wg address.";
-      };
-
       dnsServers = mkOption {
         type = with types; nullOr (listOf str);
         default = null;
@@ -91,13 +72,14 @@ in {
 
       vpnTestService = {
         enable = mkEnableOption "Enable the vpn test service.";
+
         port = mkOption {
           type = types.port;
-          default = [ 12300 ];
+          default = 12300;
           description = lib.mdDoc ''
             The port that the vpn test service listens to.
           '';
-          example = [ 58403 ];
+          example = 58403;
         };
       };
 
@@ -133,30 +115,43 @@ in {
       transmission = {};
       jellyfin = {};
     };
+    # TODO: This is BAD. But seems necessary when using containers.
+    # The prefered solution is to just remove containerization.
+    # Look at https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/misc/ids.nix
     users.users = {
       jellyfin = {
         isSystemUser = true;
-        uid = lib.mkForce 994;
+        uid = lib.mkForce 316;
       };
       sonarr = {
         isSystemUser = true;
         group = "media";
-        uid = lib.mkForce 991;
+        uid = lib.mkForce 274;
       };
       radarr = {
         isSystemUser = true;
         group = "media";
         uid = lib.mkForce 275;
       };
+      lidarr = {
+        isSystemUser = true;
+        group = "media";
+        uid = lib.mkForce 306;
+      };
+      readarr = {
+        isSystemUser = true;
+        group = "media";
+        uid = lib.mkForce 309;
+      };
       transmission = {
         isSystemUser = true;
         group = "transmission";
-        uid = lib.mkForce 990;
+        uid = lib.mkForce 70;
       };
       prowlarr = {
         isSystemUser = true;
         group = "prowlarr";
-        uid = lib.mkForce 989;
+        uid = lib.mkForce 293;
       };
     };
 
@@ -167,12 +162,16 @@ in {
       "d '${cfg.stateDir}/servarr/transmission' 0700 transmission root  - -"
       "d '${cfg.stateDir}/servarr/sonarr'       0700 sonarr       root  - -"
       "d '${cfg.stateDir}/servarr/radarr'       0700 radarr       root  - -"
+      "d '${cfg.stateDir}/servarr/readarr'      0700 readarr      root  - -"
+      "d '${cfg.stateDir}/servarr/lidarr'       0700 lidarr       root  - -"
       "d '${cfg.stateDir}/servarr/prowlarr'     0700 prowlarr     root  - -"
 
       "d '${cfg.mediaDir}'                      0775 root         media - -"
       "d '${cfg.mediaDir}/library'              0775 jellyfin     media - -"
       "d '${cfg.mediaDir}/library/series'       0775 jellyfin     media - -"
       "d '${cfg.mediaDir}/library/movies'       0775 jellyfin     media - -"
+      "d '${cfg.mediaDir}/library/music'        0775 jellyfin     media - -"
+      "d '${cfg.mediaDir}/library/books'        0775 jellyfin     media - -"
       "d '${cfg.mediaDir}/torrents'             0755 transmission media - -"
       "d '${cfg.mediaDir}/torrents/.incomplete' 0755 transmission media - -"
       "d '${cfg.mediaDir}/torrents/.watch'      0755 transmission media - -"

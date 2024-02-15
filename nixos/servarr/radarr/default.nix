@@ -14,7 +14,7 @@ in {
   options.kirk.servarr.radarr = {
     enable = mkOption {
       type = types.bool;
-      default = true;
+      default = false;
       description = lib.mdDoc "Enable radarr";
     };
 
@@ -36,7 +36,7 @@ in {
       enable = cfg.enable;
       user = "radarr";
       group = "media";
-      dataDir = "${config.kirk.servarr.stateDir}/servarr/radarr";
+      dataDir = cfg.stateDir;
     };
 
     kirk.vpnnamespace.portMappings = [(
@@ -53,22 +53,29 @@ in {
 
       bindMounts = {
         "${servarr.mediaDir}".isReadOnly = false;
-        "${config.kirk.servarr.stateDir}/servarr/radarr".isReadOnly = false;
+        "${cfg.stateDir}".isReadOnly = false;
       };
 
       config = {
+        users.groups.media = {
+          gid = config.users.groups.media.gid;
+        };
+        users.users.radarr = {
+          uid = lib.mkForce config.users.users.radarr.uid;
+          isSystemUser = true;
+          group = "media";
+        };
+
         # Use systemd-resolved inside the container
         # Workaround for bug https://github.com/NixOS/nixpkgs/issues/162686
         networking.useHostResolvConf = lib.mkForce false;
         services.resolved.enable = true;
         networking.nameservers = dnsServers;
 
-        users.groups.media = {};
-
         services.radarr = {
           enable = true;
           group = "media";
-          dataDir = "${config.kirk.servarr.stateDir}/servarr/radarr";
+          dataDir = cfg.stateDir;
         };
 
         system.stateVersion = "23.11";

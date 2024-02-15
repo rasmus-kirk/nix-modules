@@ -160,7 +160,6 @@ in {
         in regex != null;
       isIp = ip: (isIpv4 ip || isIpv6 ip);
   in
-  #assert ( extractedDns != [] ) || abort "There must be at least 1 DNS server set.";
   mkIf cfg.enable {
     lib.vpn = {
       dnsServers =
