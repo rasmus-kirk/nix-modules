@@ -138,6 +138,8 @@ in {
           RootDirectory = lib.mkForce "";
         };
 
+        programs.bash.loginShellInit = "journalctl -fu transmission.service";
+
         services.transmission = {
           enable = true;
           # This is wrong, too afraid to fix it lol
