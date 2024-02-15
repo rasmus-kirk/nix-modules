@@ -180,6 +180,15 @@ in {
         environment.systemPackages = with pkgs; [
           curl
           wget
+          util-linux
+          unixtools.ping
+          coreutils
+          curl
+          bash
+          libressl
+          netcat-gnu
+          openresolv
+          dig
         ];
 
         system.stateVersion = "23.11";

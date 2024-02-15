@@ -4,27 +4,10 @@
 # objects with settings as attributes. Also add an option to enable whether
 # the namespace should use a vpn or not.
 with builtins;
+with lib;
 let
-  ## Extracts addresses from a wg-quick config file
-  #extractAddresses = wgConfPath: 
-  #  let lines = split "\n" (readFile wgConfPath); 
-  #      addrLine = headMay (filter (x: typeOf x == "string" && match ".*Address.*" x != null) lines); 
-  #  in if addrLine == null then [] else let
-  #      ipsUnsplit = head (match "Address ?=(.*)" addrLine);
-  #  in if ipsUnsplit == null then [] else let
-  #      ips = filter (x: typeOf x == "string") (split "," ipsUnsplit);
-  #      ipsNoSpaces = map (replaceStrings [" "] [""]) ips;
-  #  in filter isIp ipsNoSpaces;
-  ## Extracts the first ipv4 address from a wg-quick config file
-  #extractIpv4Address = wgConfPath:
-  #  let ipv4s = filter isIpv4 (extractAddresses wgConfPath); in 
-  #  headMay ipv4s;
-  ## Extracts the first ipv6 address from a wg-quick config file
-  #extractIpv6Address = wgConfPath:
-  #  let ipv6s = filter isIpv6 (extractAddresses wgConfPath); in 
-  #  headMay ipv6s;
   cfg = config.kirk.vpnnamespace;
-in with lib; {
+in {
   options.kirk.vpnnamespace = {
     enable = mkEnableOption (lib.mdDoc "VPN Namespace") // {
       description = lib.mdDoc ''
@@ -162,9 +145,6 @@ in with lib; {
 
   config = 
   let
-      #wgAddress = extractIpv4Address cfg.wireguardConfigFile;
-      #dnsServers = [ "adsf" ];
-      wgAddress = "0.0.0.0";
       headMay = list: if list == [] then null else head list; 
       # Checks if string is ipv4, from SO, hope it works well
       # https://stackoverflow.com/questions/53497/regular-expression-that-matches-valid-ipv6-addresses
@@ -179,29 +159,8 @@ in with lib; {
             regex = match pat address;
         in regex != null;
       isIp = ip: (isIpv4 ip || isIpv6 ip);
-      # Extracts dns servers from a wg-quick config file
-      #extractedDns =
-      #  let lines = split "\n" (readFile cfg.wireguardConfigFile); 
-      #      dnsLine = head (filter (x: typeOf x == "string" && match ".*DNS.*" x != null) lines); 
-      #      ipsUnsplit = head (match "DNS ?=(.*)" dnsLine);
-      #      ips = filter (x: typeOf x == "string") (split "," ipsUnsplit);
-      #      ipsNoSpaces = map (replaceStrings [" "] [""]) ips;
-      #  in filter isIp ipsNoSpaces;
-      # Extracts dns servers from a wg-quick config file
-      #extractDns = wgConfPath: 
-      #  let lines = split "\n" (readFile wgConfPath); 
-      #      dnsLine = headMay (filter (x: typeOf x == "string" && match ".*DNS.*" x != null) lines); 
-      #  in if dnsLine == null then [] else let
-      #      ipsUnsplit = head (match "DNS ?=(.*)" dnsLine);
-      #  in if ipsUnsplit == null then [] else let
-      #      ips = filter (x: typeOf x == "string") (split "," ipsUnsplit);
-      #      ipsNoSpaces = map (replaceStrings [" "] [""]) ips;
-      #  in filter isIp ipsNoSpaces;
-      #extractedDns = [ "0.0.0.0" ];
-      #extractedDns = [ "0.0.0.0" ];
   in
   #assert ( extractedDns != [] ) || abort "There must be at least 1 DNS server set.";
-  assert ( wgAddress != null ) || abort "No address found in config file.";
   mkIf cfg.enable {
     lib.vpn = {
       dnsServers =
@@ -316,7 +275,7 @@ in with lib; {
               "\n"
             ) cfg.openUdpPorts;
           };
-        in {
+        in assert ( wgIpv4Address != null ) || abort "No address found in config file."; {
           Type = "oneshot";
           RemainAfterExit = true;
           ExecStart = "${vpn-namespace}/bin/vpn-namespace";
@@ -352,7 +311,6 @@ in with lib; {
               # Print resolv.conf
               echo "/etc/resolv.conf contains:"
               cat /etc/resolv.conf
-              #echo ""
 
               # Query resolvconf
               echo "resolvconf output:"
@@ -363,14 +321,7 @@ in with lib; {
               echo "Getting IP:"
               curl -s ipinfo.io
 
-              echo -ne "Making DNS requests... "
-              # shellcheck disable=SC2034
-              #DATA=$(for i in {1..10}; do dig "$RANDOM.go.dnscheck.tools" TXT +short | grep -e remoteIP -e remoteNetwork | sort; done)
-              #echo -ne "done\n\n"
-              #echo -ne "Summary of your DNS resolvers:\n\n"
-              #echo "$DATA" | sort | uniq -c | sort -nr | sed -e 's/"//g' -e 's/remoteIP:/|/' -e 's/remoteNetwork:/|/' | column -t -s '|'
-
-              # DNS leak test
+              echo -ne "DNS leak test:"
               curl -s https://raw.githubusercontent.com/macvk/dnsleaktest/b03ab54d574adbe322ca48cbcb0523be720ad38d/dnsleaktest.sh -o dnsleaktest.sh
               chmod +x dnsleaktest.sh
               ./dnsleaktest.sh
