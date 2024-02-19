@@ -320,6 +320,8 @@ in {
               echo "Getting IP:"
               curl -s ipinfo.io
 
+              cat /etc/test.file
+
               echo -ne "DNS leak test:"
               curl -s https://raw.githubusercontent.com/macvk/dnsleaktest/b03ab54d574adbe322ca48cbcb0523be720ad38d/dnsleaktest.sh -o dnsleaktest.sh
               chmod +x dnsleaktest.sh
@@ -335,8 +337,9 @@ in {
         requires = [ "network-online.target" ];
         after = [ "wg.service" ];
         serviceConfig = {
+          User="prowlarr";
           NetworkNamespacePath = "/var/run/netns/wg";
-          BindReadOnlyPaths="/etc/netns/wg/resolv.conf:/etc/resolv.conf:norbind";
+          BindReadOnlyPaths=["/etc/netns/wg/resolv.conf:/etc/resolv.conf:norbind" "/data/test.file:/etc/test.file:norbind"];
         };
       };
     };
