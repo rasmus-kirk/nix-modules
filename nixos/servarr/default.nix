@@ -183,14 +183,11 @@ in {
       "d '${cfg.mediaDir}/torrents'               0755 transmission media - -"
       "d '${cfg.mediaDir}/torrents/.incomplete'   0755 transmission media - -"
       "d '${cfg.mediaDir}/torrents/.watch'        0755 transmission media - -"
-      "d '${cfg.mediaDir}/torrents/music/liadarr' 0755 transmission media - -"
-      "d '${cfg.mediaDir}/torrents/music/manual'  0755 transmission media - -"
-      "d '${cfg.mediaDir}/torrents/movies/radarr' 0755 transmission media - -"
-      "d '${cfg.mediaDir}/torrents/movies/manual' 0755 transmission media - -"
-      "d '${cfg.mediaDir}/torrents/series/sonarr' 0755 transmission media - -"
-      "d '${cfg.mediaDir}/torrents/series/manual' 0755 transmission media - -"
-      "d '${cfg.mediaDir}/torrents/books/readarr' 0755 transmission media - -"
-      "d '${cfg.mediaDir}/torrents/books/manual'  0755 transmission media - -"
+      "d '${cfg.mediaDir}/torrents/manual'        0755 transmission media - -"
+      "d '${cfg.mediaDir}/torrents/liadarr'       0755 transmission media - -"
+      "d '${cfg.mediaDir}/torrents/radarr'        0755 transmission media - -"
+      "d '${cfg.mediaDir}/torrents/sonarr'        0755 transmission media - -"
+      "d '${cfg.mediaDir}/torrents/readarr'       0755 transmission media - -"
     ];
 
     kirk.upnp.enable = cfg.upnp.enable;

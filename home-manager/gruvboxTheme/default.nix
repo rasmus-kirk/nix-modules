@@ -19,6 +19,8 @@
         teal = "689d6a";
 
         bright = {
+          fg = "fbf8e4";
+          bg = "504945";
           black = "928374";
           white = "fbf1c7";
           orange = "fe8019";

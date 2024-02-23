@@ -18,6 +18,15 @@ in {
       '';
     };
 
+    darkmode = mkOption {
+      type = types.bool;
+      default = true;
+
+      description = ''
+        Enable darkmode on recolor.
+      '';
+    };
+
     enableKeyBindings = mkOption {
       type = types.bool;
       default = true;
@@ -38,7 +47,25 @@ in {
           recolor-reverse-video = "true";
           recolor-keephue = "true";
         }
-        (mkIf (cfg.colorscheme != {}) {
+        (mkIf (cfg.colorscheme != {} && !cfg.darkmode) {
+          default-bg = "#${cfg.colorscheme.bg}";
+          default-fg = "#${cfg.colorscheme.fg}";
+          statusbar-fg = "#${cfg.colorscheme.fg}";
+          statusbar-bg = "#${cfg.colorscheme.black}";
+          inputbar-bg = "#${cfg.colorscheme.bg}";
+          inputbar-fg = "#${cfg.colorscheme.white}";
+          notification-bg = "#${cfg.colorscheme.fg} #08";
+          notification-fg = "#${cfg.colorscheme.bg} #00";
+          notification-error-bg = "#${cfg.colorscheme.red} #08";
+          notification-error-fg = "#${cfg.colorscheme.fg} #00";
+          notification-warning-bg = "#${cfg.colorscheme.yellow} #08";
+          notification-warning-fg = "#${cfg.colorscheme.fg} #00";
+          highlight-color = "#${cfg.colorscheme.bright.yellow}";# " #0A"
+          highlight-active-color = "#${cfg.colorscheme.bright.green}";# " #0D"
+          recolor-lightcolor = "#${cfg.colorscheme.bg}";
+          recolor-darkcolor = "#${cfg.colorscheme.fg}";
+        })
+        (mkIf (cfg.colorscheme != {} && cfg.darkmode) {
           default-bg = "#${cfg.colorscheme.bg}";
           default-fg = "#${cfg.colorscheme.fg}";
           statusbar-fg = "#${cfg.colorscheme.fg}";
