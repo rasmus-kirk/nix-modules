@@ -47,8 +47,9 @@
         config._module.check = false;
       }
       inputs.home-manager.nixosModules.default
-      ./nixos/servarr
-      ./nixos/nixosScripts
+      ./nixos
+      #./nixos/servarr
+      #./nixos/nixosScripts
     ];
   };
   optionsDocNixos = nixosOptionsDoc {
@@ -64,19 +65,16 @@ in pkgs.stdenv.mkDerivation {
       #tmpdir=$out/debug
       mkdir -p $out
       mkdir -p $tmpdir
-      cp docs/styling/style.css $out
+      cp docs/pandoc/style.css $out
 
       buildpandoc () {
         file_path="$1"
+        title="$2"
         filename=$(basename -- "$file_path")
         filename_no_ext="''${filename%.*}"
-        echo "$file_path"
-        echo "$1"
 
         # Remove "Declared by" lines
         sed '/\*Declared by:\*/{N;d;}' "$file_path" > "$tmpdir"/"$filename_no_ext"1.md
-
-        echo 2
 
         # Code blocks to nix code blocks
         # shellcheck disable=SC2016
@@ -96,17 +94,16 @@ in pkgs.stdenv.mkDerivation {
         # inline code "blocks" to nix code blocks
         # shellcheck disable=SC2016
         sed '/^`[^`]*`$/s/`\(.*\)`/```nix\n\1\n```/g' "$tmpdir"/"$filename_no_ext"2.md > "$tmpdir"/"$filename_no_ext"3.md
-        echo 3
         # Remove bottom util-nixarr options
         sed '/util-nixarr/,$d' "$tmpdir"/"$filename_no_ext"3.md > "$tmpdir"/done.md
-        echo 4
 
         pandoc \
           --standalone \
-          --highlight-style docs/styling/gruvbox.theme \
-          --metadata title="Kirk Modules - Option Documentation" \
+          --highlight-style docs/pandoc/gruvbox.theme \
+          --metadata title="$title" \
           --metadata date="$(date -u '+%Y-%m-%d - %H:%M:%S %Z')" \
           --css=style.css \
+          --template docs/pandoc/template.html \
           -V lang=en \
           -V --mathjax \
           -f markdown+smart \
@@ -119,20 +116,21 @@ in pkgs.stdenv.mkDerivation {
       # Generate home-manager md docs
       cat ${optionsDocHome.optionsCommonMark} | tail -n +247 >> "$tmpdir"/home.md
 
-      buildpandoc "$tmpdir"/nixos.md
-      buildpandoc "$tmpdir"/home.md
+      buildpandoc "$tmpdir"/nixos.md "Nixos Modules - Options Documentation"
+      buildpandoc "$tmpdir"/home.md "Home Manager Modules - Options Documentation"
 
-        pandoc \
-          --standalone \
-          --highlight-style docs/styling/gruvbox.theme \
-          --metadata title="Kirk Modules - Option Documentation" \
-          --metadata date="$(date -u '+%Y-%m-%d - %H:%M:%S %Z')" \
-          --css=style.css \
-          -V lang=en \
-          -V --mathjax \
-          -f markdown+smart \
-          -o $out/index.html \
-          docs/index.md
+      pandoc \
+        --standalone \
+        --highlight-style docs/pandoc/gruvbox.theme \
+        --metadata title="Kirk Modules - Option Documentation" \
+        --metadata date="$(date -u '+%Y-%m-%d - %H:%M:%S %Z')" \
+        --css=style.css \
+        --template docs/pandoc/template.html \
+        -V lang=en \
+        -V --mathjax \
+        -f markdown+smart \
+        -o $out/index.html \
+        docs/index.md
     '';
   }
 
