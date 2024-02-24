@@ -102,11 +102,12 @@ footer .content {
 .content {
   margin: auto;
   padding: 0 0.5rem;
-  max-width: 38rem;
+  max-width: 50rem;
 }
 
 .content-wrap {
-  padding-bottom: 2.5rem;
+  padding-bottom: 4rem;
+  overflow-wrap: break-word;
 }
 
 a {
