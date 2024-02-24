@@ -61,7 +61,9 @@ in pkgs.stdenv.mkDerivation {
     phases = ["unpackPhase" "buildPhase"];
     buildPhase = ''
       tmpdir=$(mktemp -d)
+      #tmpdir=$out/debug
       mkdir -p $out
+      mkdir -p $tmpdir
       cp docs/styling/style.css $out
 
       buildpandoc () {
@@ -113,9 +115,9 @@ in pkgs.stdenv.mkDerivation {
       }
 
       # Generate nixos md docs
-      cat ${optionsDocNixos.optionsCommonMark} | tail -n +58 >> "$tmpdir"/nixos.md
+      cat ${optionsDocNixos.optionsCommonMark} | tail -n +247 >> "$tmpdir"/nixos.md
       # Generate home-manager md docs
-      cat ${optionsDocHome.optionsCommonMark} | tail -n +58 >> "$tmpdir"/home.md
+      cat ${optionsDocHome.optionsCommonMark} | tail -n +247 >> "$tmpdir"/home.md
 
       buildpandoc "$tmpdir"/nixos.md
       buildpandoc "$tmpdir"/home.md

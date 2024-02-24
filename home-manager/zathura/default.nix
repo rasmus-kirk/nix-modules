@@ -62,8 +62,8 @@ in {
           notification-warning-fg = "#${cfg.colorscheme.fg} #00";
           highlight-color = "#${cfg.colorscheme.bright.yellow}";# " #0A"
           highlight-active-color = "#${cfg.colorscheme.bright.green}";# " #0D"
-          recolor-lightcolor = "#${cfg.colorscheme.bg}";
-          recolor-darkcolor = "#${cfg.colorscheme.fg}";
+          recolor-lightcolor = "#${cfg.colorscheme.bright.fg}";
+          recolor-darkcolor = "#${cfg.colorscheme.bg}";
         })
         (mkIf (cfg.colorscheme != {} && cfg.darkmode) {
           default-bg = "#${cfg.colorscheme.bg}";

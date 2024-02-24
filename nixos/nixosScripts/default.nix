@@ -41,6 +41,7 @@ with lib; let
   nos-rebuild = pkgs.writeShellApplication {
     name = "nos-rebuild";
     text = ''
+      nix flake update nixarr --flake ${cfg.configDir}
       # Update the inputs of this repo on every rebuild
       nix flake update kirk-modules --flake ${cfg.configDir} &&
       # Switch configuration, backing up files
