@@ -102,7 +102,8 @@ in pkgs.stdenv.mkDerivation {
           --highlight-style docs/pandoc/gruvbox.theme \
           --metadata title="$title" \
           --metadata date="$(date -u '+%Y-%m-%d - %H:%M:%S %Z')" \
-          --css=style.css \
+          --lua-filter docs/pandoc/anchor-links.lua \
+          --css style.css \
           --template docs/pandoc/template.html \
           -V lang=en \
           -V --mathjax \
@@ -124,7 +125,7 @@ in pkgs.stdenv.mkDerivation {
         --highlight-style docs/pandoc/gruvbox.theme \
         --metadata title="Kirk Modules - Option Documentation" \
         --metadata date="$(date -u '+%Y-%m-%d - %H:%M:%S %Z')" \
-        --css=style.css \
+        --css style.css \
         --template docs/pandoc/template.html \
         -V lang=en \
         -V --mathjax \
