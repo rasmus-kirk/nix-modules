@@ -68,19 +68,39 @@ with lib; let
   };
 in {
   options.kirk.homeManagerScripts = {
-    enable = mkEnableOption "home manager scripts";
+    enable = mkEnableOption ''
+      Home manager scripts. Gives access to command-line scripts that make
+      managing home-manager easier. These scripts are lean bash scripts that
+      compose a couple of nix and home-manager commands:
+
+      - `hm-update`: Updates the available packages, usually, you don't need
+        to run this, but the other scripts use it.
+      - `hm-clean`: Cleans up older configurations and garbage collects the
+        nix store, cleaning up unused packages and freeing up harddisk space
+      - `hm-rebuild`: Builds your configuration. Backs up files; if you
+        fx have a `.bashrc` and home-manager needs to overwrite it, the old
+        `.bashrc` is renamed to `.bashrc.bck`
+      - `hm-upgrade`: Updates all packages, rebuilds and finally older
+        configurations/garbage collects
+      - `hm-rollback`: Use this command to roll back to a previous working
+        home manager configuration.
+      
+    '';
 
     configDir = mkOption {
       type = types.nullOr types.path;
       # modules are evaluated as follows: imports, options, config
       # you don't want to refer to config. from options as they haven't been evaluated yet.
       default = null;
-      description = "Path to the home-manager configuration.";
+      description = ''
+        Path to the home-manager configuration. If not set, will default to:
+        `''${config.xdg.configHome}/home-manager`.
+      '';
     };
 
     machine = mkOption {
       type = types.nullOr types.str;
-      description = "REQUIRED! Path to the home-manager configuration.";
+      description = "**REQUIRED!** Path to the home-manager configuration.";
     };
   };
 
