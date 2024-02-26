@@ -65,7 +65,7 @@ in pkgs.stdenv.mkDerivation {
       #tmpdir=$out/debug
       mkdir -p $out
       mkdir -p $tmpdir
-      cp docs/pandoc/style.css $out
+      cp -r docs $out
 
       buildpandoc () {
         file_path="$1"
@@ -94,8 +94,8 @@ in pkgs.stdenv.mkDerivation {
         # inline code "blocks" to nix code blocks
         # shellcheck disable=SC2016
         sed '/^`[^`]*`$/s/`\(.*\)`/```nix\n\1\n```/g' "$tmpdir"/"$filename_no_ext"2.md > "$tmpdir"/"$filename_no_ext"3.md
-        # Remove bottom util-nixarr options
-        sed '/util-nixarr/,$d' "$tmpdir"/"$filename_no_ext"3.md > "$tmpdir"/done.md
+        # Make h2 header to h3
+        sed 's/^##/###/g' "$tmpdir"/"$filename_no_ext"3.md > "$tmpdir"/done.md
 
         pandoc \
           --standalone \
@@ -103,7 +103,7 @@ in pkgs.stdenv.mkDerivation {
           --metadata title="$title" \
           --metadata date="$(date -u '+%Y-%m-%d - %H:%M:%S %Z')" \
           --lua-filter docs/pandoc/anchor-links.lua \
-          --css style.css \
+          --css /docs/pandoc/style.css \
           --template docs/pandoc/template.html \
           -V lang=en \
           -V --mathjax \
@@ -125,7 +125,7 @@ in pkgs.stdenv.mkDerivation {
         --highlight-style docs/pandoc/gruvbox.theme \
         --metadata title="Kirk Modules - Option Documentation" \
         --metadata date="$(date -u '+%Y-%m-%d - %H:%M:%S %Z')" \
-        --css style.css \
+          --css /docs/pandoc/style.css \
         --template docs/pandoc/template.html \
         -V lang=en \
         -V --mathjax \
