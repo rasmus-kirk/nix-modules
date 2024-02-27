@@ -14,6 +14,9 @@ with lib; let
       downRoot="${config.xdg.userDirs.extraConfig.XDG_DOWNLOADS_ROOT}"
       unsorted="${config.xdg.userDirs.download}"
 
+      cp -r ~/Downloads "$unsorted"
+      rm -r ~/Downloads
+
       mkdir -p $downRoot/documents
       mkdir -p $downRoot/archives
       mkdir -p $downRoot/audio
