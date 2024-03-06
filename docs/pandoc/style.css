@@ -71,13 +71,18 @@ nav a {
   padding: 0.15em 1em;
 }
 
+nav a:visited {
+  color: #458587;
+}
+
+nav a:hover {
+  background-color: var(--dkblue);
+  color: var(--bg);
+}
+
 nav a.active {
   background-color: #458587;
   color: #faf8e4 !important;
-}
-
-nav a:visited {
-  color: #458587;
 }
 
 footer {
@@ -129,6 +134,25 @@ a:active {
 
 a:focus {
   outline: thin dotted;
+}
+
+a code {
+  text-decoration-line: underline;
+}
+
+strong a {
+  text-decoration-line: underline;
+  color: var(--fg0);
+}
+
+strong a:hover {
+  text-decoration-line: underline;
+  color: var(--fg0);
+}
+
+strong a:visited {
+  text-decoration-line: underline;
+  color: var(--fg0);
 }
 
 *::-moz-selection {
