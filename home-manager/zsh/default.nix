@@ -30,7 +30,7 @@ in {
         #alias ls="exa --icons"
 
         alias nix-shell="nix-shell --run 'zsh'"
-        alias rustfmt="cargo +nightly fmt"
+        alias rustfmt="cargo +nightly-2023-04-01-x86_64-unknown-linux-gnu fmt"
         alias todo="$EDITOR ~/.local/share/todo.md"
         alias g="git"
         # TODO: this is bad, generalize...

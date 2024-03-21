@@ -37,7 +37,7 @@ function Pandoc(doc)
     local condition = function(header)
         -- Assuming the header's actual text is in the 'content' array and in the first element
         local header_text = pandoc.utils.stringify(header.content)
-        return starts_with(header_text, "_module.args")
+        return starts_with(header_text, "_module.args") or starts_with(header_text, "home-manager")
     end
 
     -- Apply the removal function to the document blocks

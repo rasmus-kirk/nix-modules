@@ -3,6 +3,7 @@
     ./fonts
     ./foot
     ./fzf
+    ./scripts
     ./git
     ./gruvboxTheme
     ./helix
