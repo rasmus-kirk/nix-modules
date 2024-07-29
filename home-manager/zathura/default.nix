@@ -46,6 +46,7 @@ in {
           selection-clipboard = "clipboard";
           recolor-reverse-video = "true";
           recolor-keephue = "true";
+          highlight-transparency = 0.4;
         }
         (mkIf (cfg.colorscheme != {} && !cfg.darkmode) {
           default-bg = "#${cfg.colorscheme.bg}";
@@ -54,12 +55,12 @@ in {
           statusbar-bg = "#${cfg.colorscheme.black}";
           inputbar-bg = "#${cfg.colorscheme.bg}";
           inputbar-fg = "#${cfg.colorscheme.white}";
-          notification-bg = "#${cfg.colorscheme.fg} #08";
-          notification-fg = "#${cfg.colorscheme.bg} #00";
-          notification-error-bg = "#${cfg.colorscheme.red} #08";
-          notification-error-fg = "#${cfg.colorscheme.fg} #00";
-          notification-warning-bg = "#${cfg.colorscheme.yellow} #08";
-          notification-warning-fg = "#${cfg.colorscheme.fg} #00";
+          notification-bg = "#${cfg.colorscheme.fg}";
+          notification-fg = "#${cfg.colorscheme.bg}";
+          notification-error-bg = "#${cfg.colorscheme.red}";
+          notification-error-fg = "#${cfg.colorscheme.fg}";
+          notification-warning-bg = "#${cfg.colorscheme.yellow}";
+          notification-warning-fg = "#${cfg.colorscheme.fg}";
           highlight-color = "#${cfg.colorscheme.bright.yellow}";# " #0A"
           highlight-active-color = "#${cfg.colorscheme.bright.green}";# " #0D"
           recolor-lightcolor = "#${cfg.colorscheme.bright.fg}";
@@ -72,12 +73,12 @@ in {
           statusbar-bg = "#${cfg.colorscheme.black}";
           inputbar-bg = "#${cfg.colorscheme.bg}";
           inputbar-fg = "#${cfg.colorscheme.white}";
-          notification-bg = "#${cfg.colorscheme.fg} #08";
-          notification-fg = "#${cfg.colorscheme.bg} #00";
-          notification-error-bg = "#${cfg.colorscheme.red} #08";
-          notification-error-fg = "#${cfg.colorscheme.fg} #00";
-          notification-warning-bg = "#${cfg.colorscheme.yellow} #08";
-          notification-warning-fg = "#${cfg.colorscheme.fg} #00";
+          notification-bg = "#${cfg.colorscheme.fg}";
+          notification-fg = "#${cfg.colorscheme.bg}";
+          notification-error-bg = "#${cfg.colorscheme.red}";
+          notification-error-fg = "#${cfg.colorscheme.fg}";
+          notification-warning-bg = "#${cfg.colorscheme.yellow}";
+          notification-warning-fg = "#${cfg.colorscheme.fg}";
           highlight-color = "#${cfg.colorscheme.bright.yellow}";# " #0A"
           highlight-active-color = "#${cfg.colorscheme.bright.green}";# " #0D"
           recolor-lightcolor = "#${cfg.colorscheme.bg}";
